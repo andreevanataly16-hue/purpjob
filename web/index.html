@@ -330,6 +330,14 @@
   let mode = 'login'
   let busy = false
 
+  // Домены верхнего уровня, зарезервированные под служебные нужды (RFC 6761 и
+  // RFC 2606): почтовых ящиков в них не бывает. Тот же список проверяет на
+  // сервере email-validator, поэтому ловим их здесь - иначе человек узнает об
+  // отказе только после отправки формы и без объяснения причины.
+  const RESERVED_TLDS = ['arpa', 'invalid', 'local', 'localhost', 'onion', 'test']
+  const RESERVED_DOMAIN_MESSAGE =
+    'Такой домен зарезервирован под служебные нужды - почта в нём не работает.'
+
   const copy = {
     login: {
       title: 'Вход',
@@ -450,6 +458,9 @@
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
       showError(emailEl, 'Похоже, в адресе опечатка.')
       firstBad ??= emailEl
+    } else if (RESERVED_TLDS.includes(email.split('@').pop().split('.').pop().toLowerCase())) {
+      showError(emailEl, RESERVED_DOMAIN_MESSAGE)
+      firstBad ??= emailEl
     }
 
     const pw = pwEl.value
@@ -471,6 +482,35 @@
     emailEl.disabled = state
     pwEl.disabled = state
     submitEl.textContent = state ? copy[mode].pending : copy[mode].submit
+  }
+
+  /* ---------- ошибки проверки от сервера ---------- */
+
+  // FastAPI отвечает на 422 телом { detail: [ { type, loc, msg, ctx } ] }.
+  // Раньше любой 422 списывался на почту, и человек с коротким паролем видел
+  // ошибку под чужим полем. Смотрим loc и показываем ошибку там, где она есть.
+  function showValidationError(payload) {
+    const problem = Array.isArray(payload?.detail) ? payload.detail[0] : null
+    const field = problem?.loc?.[1]
+
+    if (field === 'password') {
+      showError(pwEl, problem.type === 'string_too_long'
+        ? 'Пароль слишком длинный.'
+        : `Пароль короче ${problem.ctx?.min_length ?? 8} символов.`)
+      pwEl.focus()
+      return
+    }
+
+    if (field === 'email') {
+      // Причина от email-validator приходит по-английски, показывать её нельзя.
+      // Разделяем два случая: служебный домен и всё остальное - опечатка.
+      const reserved = (problem.ctx?.reason ?? '').includes('special-use')
+      showError(emailEl, reserved ? RESERVED_DOMAIN_MESSAGE : 'Похоже, в адресе опечатка.')
+      emailEl.focus()
+      return
+    }
+
+    showFormError('Проверьте введённые данные.')
   }
 
   /* ---------- отправка формы ---------- */
@@ -507,7 +547,7 @@
     } else if (result.status === 401) {
       showFormError(detail ?? 'Неверная почта или пароль.')
     } else if (result.status === 422) {
-      showError(emailEl, 'Проверьте адрес почты.')
+      showValidationError(result.payload)
     } else {
       showFormError(detail ?? 'Что-то пошло не так. Попробуйте ещё раз.')
     }
