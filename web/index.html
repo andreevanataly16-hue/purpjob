@@ -3,16 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PurpJob — Hello World</title>
+<title>PurpJob — вход</title>
 <style>
   :root {
     --bg: #14101c;
     --card: #1e1830;
+    --field: #171226;
     --line: #322a4a;
+    --line-strong: #453a63;
     --purple: #a06bff;
+    --purple-dim: #8952e8;
     --purple-soft: #c9aaff;
     --text: #ece8f5;
     --muted: #9b93ae;
+    --danger: #ff7a8a;
   }
   * { box-sizing: border-box; }
   body {
@@ -28,11 +32,11 @@
   }
   .card {
     width: 100%;
-    max-width: 620px;
+    max-width: 430px;
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 18px;
-    padding: 44px 40px;
+    padding: 38px 36px 32px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
   }
   .brand {
@@ -50,40 +54,131 @@
     background: var(--purple);
     box-shadow: 0 0 12px var(--purple);
   }
-  h1 {
-    margin: 22px 0 10px;
-    font-size: 44px;
-    line-height: 1.1;
-    letter-spacing: -.02em;
-  }
-  h1 span { color: var(--purple); }
-  .tagline { margin: 0 0 30px; color: var(--muted); }
-  .flow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 30px;
-  }
-  .flow b {
-    padding: 7px 13px;
+  h1 { margin: 18px 0 6px; font-size: 26px; letter-spacing: -.01em; }
+  .sub { margin: 0 0 26px; color: var(--muted); font-size: 14px; }
+
+  /* Переключатель вход / регистрация */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 24px;
+    background: var(--field);
     border: 1px solid var(--line);
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--purple-soft);
-    background: rgba(160, 107, 255, .07);
+    border-radius: 11px;
   }
-  .flow i { color: var(--muted); font-style: normal; align-self: center; }
-  .status {
-    border-top: 1px solid var(--line);
-    padding-top: 20px;
+  .tabs button {
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
     font-size: 14px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button[aria-selected="true"] {
+    background: var(--purple);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .field { margin-bottom: 18px; }
+  label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 13px;
     color: var(--muted);
   }
-  .status strong { color: var(--text); font-weight: 600; }
-  @media (max-width: 520px) {
-    .card { padding: 32px 24px; }
-    h1 { font-size: 34px; }
+  input[type="email"], input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--field);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input::placeholder { color: #6b6480; }
+  input:focus {
+    outline: none;
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(160, 107, 255, .18);
+  }
+  input[aria-invalid="true"] { border-color: var(--danger); }
+  input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(255, 122, 138, .16); }
+
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 82px; }
+  .pw-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    padding: 6px 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .pw-toggle:hover { color: var(--purple-soft); background: rgba(160, 107, 255, .1); }
+
+  .error {
+    display: none;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--danger);
+  }
+  .error.show { display: block; }
+  .hint { margin-top: 7px; font-size: 12.5px; color: var(--muted); }
+
+  .submit {
+    width: 100%;
+    margin-top: 6px;
+    padding: 13px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--purple);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .submit:hover:not(:disabled) { background: var(--purple-dim); }
+  .submit:disabled { opacity: .6; cursor: default; }
+
+  .notice {
+    display: none;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--field);
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .notice.show { display: block; }
+  .notice b { color: var(--text); }
+
+  .foot {
+    margin: 26px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  @media (max-width: 480px) {
+    .card { padding: 30px 22px 26px; }
   }
 </style>
 </head>
@@ -91,21 +186,158 @@
   <main class="card">
     <div class="brand"><span class="dot"></span>PurpJob</div>
 
-    <h1>Hello, <span>World</span></h1>
-    <p class="tagline">Инфраструктура профессионального доверия.</p>
+    <h1 id="title">Вход</h1>
+    <p class="sub" id="subtitle">Профессиональный профиль, который накапливается, а не начинается заново.</p>
 
-    <div class="flow">
-      <b>Profile</b><i>→</i>
-      <b>Evidence</b><i>→</i>
-      <b>PROF / Trust</b><i>→</i>
-      <b>Match</b>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-login" aria-selected="true" data-mode="login">Вход</button>
+      <button type="button" role="tab" id="tab-register" aria-selected="false" data-mode="register">Регистрация</button>
     </div>
 
-    <p class="status">
-      <strong>Проект инициализирован.</strong><br>
-      Каркас репозитория и стартовая страница. Функционал ещё не разрабатывался —
-      следующий шаг определяется модулями 1–9 (MVP-0) из <code>docs/roadmap.md</code>.
+    <form id="auth-form" novalidate>
+      <div class="field">
+        <label for="email">Почта</label>
+        <input type="email" id="email" name="email" autocomplete="email"
+               placeholder="name@example.com" aria-describedby="email-error">
+        <p class="error" id="email-error"></p>
+      </div>
+
+      <div class="field">
+        <label for="password">Пароль</label>
+        <div class="pw-wrap">
+          <input type="password" id="password" name="password" autocomplete="current-password"
+                 placeholder="Минимум 8 символов" aria-describedby="password-error password-hint">
+          <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Показать пароль">Показать</button>
+        </div>
+        <p class="error" id="password-error"></p>
+        <p class="hint" id="password-hint" hidden>Не короче 8 символов.</p>
+      </div>
+
+      <button type="submit" class="submit" id="submit">Войти</button>
+    </form>
+
+    <div class="notice" id="notice"></div>
+
+    <p class="foot" id="foot">
+      Подтверждение почты не требуется — после регистрации вы сразу попадаете в профиль.
     </p>
   </main>
+
+<script type="module">
+  const form     = document.getElementById('auth-form')
+  const emailEl  = document.getElementById('email')
+  const pwEl     = document.getElementById('password')
+  const submitEl = document.getElementById('submit')
+  const noticeEl = document.getElementById('notice')
+  const titleEl  = document.getElementById('title')
+  const subEl    = document.getElementById('subtitle')
+  const hintEl   = document.getElementById('password-hint')
+  const tabs     = [...document.querySelectorAll('[role="tab"]')]
+
+  let mode = 'login'
+
+  const copy = {
+    login: {
+      title: 'Вход',
+      subtitle: 'Профессиональный профиль, который накапливается, а не начинается заново.',
+      submit: 'Войти',
+      autocomplete: 'current-password'
+    },
+    register: {
+      title: 'Регистрация',
+      subtitle: 'Один профиль вместо переписывания резюме под каждую вакансию.',
+      submit: 'Создать профиль',
+      autocomplete: 'new-password'
+    }
+  }
+
+  function setMode(next) {
+    mode = next
+    const c = copy[mode]
+    titleEl.textContent = c.title
+    subEl.textContent = c.subtitle
+    submitEl.textContent = c.submit
+    pwEl.autocomplete = c.autocomplete
+    hintEl.hidden = mode !== 'register'
+    document.title = `PurpJob — ${mode === 'login' ? 'вход' : 'регистрация'}`
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.mode === mode)))
+    clearErrors()
+    noticeEl.classList.remove('show')
+  }
+
+  tabs.forEach(tab => tab.addEventListener('click', () => setMode(tab.dataset.mode)))
+
+  // Показать / скрыть пароль
+  const pwToggle = document.getElementById('pw-toggle')
+  pwToggle.addEventListener('click', () => {
+    const shown = pwEl.type === 'text'
+    pwEl.type = shown ? 'password' : 'text'
+    pwToggle.textContent = shown ? 'Показать' : 'Скрыть'
+    pwToggle.setAttribute('aria-label', shown ? 'Показать пароль' : 'Скрыть пароль')
+    pwEl.focus()
+  })
+
+  function showError(input, message) {
+    const box = document.getElementById(`${input.id}-error`)
+    box.textContent = message
+    box.classList.add('show')
+    input.setAttribute('aria-invalid', 'true')
+  }
+
+  function clearError(input) {
+    const box = document.getElementById(`${input.id}-error`)
+    box.textContent = ''
+    box.classList.remove('show')
+    input.removeAttribute('aria-invalid')
+  }
+
+  function clearErrors() {
+    [emailEl, pwEl].forEach(clearError)
+  }
+
+  // Ошибка убирается, как только человек начал править поле
+  ;[emailEl, pwEl].forEach(el => el.addEventListener('input', () => clearError(el)))
+
+  function validate() {
+    clearErrors()
+    let firstBad = null
+
+    const email = emailEl.value.trim()
+    if (!email) {
+      showError(emailEl, 'Введите почту.')
+      firstBad ??= emailEl
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      showError(emailEl, 'Похоже, в адресе опечатка.')
+      firstBad ??= emailEl
+    }
+
+    const pw = pwEl.value
+    if (!pw) {
+      showError(pwEl, 'Введите пароль.')
+      firstBad ??= pwEl
+    } else if (mode === 'register' && pw.length < 8) {
+      showError(pwEl, 'Пароль короче 8 символов.')
+      firstBad ??= pwEl
+    }
+
+    if (firstBad) firstBad.focus()
+    return !firstBad
+  }
+
+  form.addEventListener('submit', event => {
+    event.preventDefault()
+    noticeEl.classList.remove('show')
+    if (!validate()) return
+
+    // Бэкенда пока нет: форма проверена, но отправлять данные некуда.
+    // Здесь будет запрос к API регистрации/входа (модуль 1 роадмапа).
+    noticeEl.innerHTML = mode === 'register'
+      ? '<b>Форма заполнена верно.</b> Регистрация пока не подключена к серверу — это следующий шаг.'
+      : '<b>Форма заполнена верно.</b> Вход пока не подключён к серверу — это следующий шаг.'
+    noticeEl.classList.add('show')
+  })
+
+  setMode('login')
+</script>
 </body>
 </html>
