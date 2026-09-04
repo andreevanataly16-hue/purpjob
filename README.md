@@ -28,15 +28,25 @@ Profile  →  Evidence  →  PROF / Trust  →  Match
 | Мастер-документ, версия 10.16 | [`docs/PurpJob_Master_Document_10_16.md`](docs/PurpJob_Master_Document_10_16.md) |
 | Роадмап продуктовых модулей 1–16 | [`docs/roadmap.md`](docs/roadmap.md) |
 | Стартовая страница Hello World | [`web/index.html`](web/index.html) |
+| Локальный сервер для разработки | [`tools/serve.ps1`](tools/serve.ps1) |
 
-## Как открыть страницу
+## Как запустить
 
-Отдельного сервера пока нет — страница статическая. Достаточно открыть файл `web/index.html`
-двойным щелчком в проводнике или командой:
+Python и Node не нужны — сервер написан на PowerShell, который уже есть в Windows:
 
 ```bash
-start web/index.html
+powershell -ExecutionPolicy Bypass -File tools\serve.ps1
 ```
+
+После запуска страница доступна по адресу **http://localhost:8000**. Остановить — `Ctrl+C`
+в окне сервера. Другой порт: `-Port 8080`.
+
+Страница статическая, так что её можно открыть и просто двойным щелчком по `web/index.html`,
+без сервера.
+
+> **Важно для скриптов `.ps1`:** Windows PowerShell 5.1 читает файлы без BOM как ANSI, из-за чего
+> кириллица внутри скрипта превращается в мусор и ломает синтаксис. Все `.ps1` в проекте нужно
+> сохранять в **UTF-8 с BOM**.
 
 ## Что дальше
 
