@@ -287,8 +287,12 @@ def test_blind_witness_confirms_competency_without_disclosing_anything(signed_cl
 
     assert profile["statements"], "ответ разобран в компетенции"
     assert all(s["status"] == MEDIUM for s in profile["statements"])
-    # Факт «материалы не раскрывались» зафиксирован (FR4.2).
-    assert profile["declines"] and all(d["target_type"] == "statement" for d in profile["declines"])
+
+    # Пометка «материалы не раскрывались» живёт на самом доказательстве.
+    # Записи об отказе тут быть не должно: кандидат не отказался подтверждать
+    # опыт, он подтвердил его, не раскрывая материалов.
+    assert profile["declines"] == []
+    assert all(s["declined"] is False for s in profile["statements"])
 
 
 def test_blind_witness_answer_can_be_attached_to_a_chosen_competency(signed_client):

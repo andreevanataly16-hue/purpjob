@@ -9,6 +9,14 @@
    рассчитан на это (компетенция + цитата + уверенность).
 2. Статус компетенции (§3.4 FRD). Правило табличное и проверяемое, не ML:
    кандидат должен понимать, почему у него именно этот статус.
+
+Две договорённости, которые важно не потерять:
+
+* `pending` у доказательства - это техническое состояние, а не оценка. Оно
+  означает «доказательство создано», а не «доказательство под сомнением»;
+  подробнее - рядом с самими константами статусов.
+* Из текста в профиль попадают только положительные утверждения. «Мы
+  отказались от Redis» и «я не работал с Kubernetes» компетенцию не создают.
 """
 
 import re
@@ -24,6 +32,20 @@ LIMITED = "limited"
 MEDIUM = "medium"
 STRONG = "strong"
 
+# Статусы доказательства (§3.2 FRD). Семантика зафиксирована так:
+#
+#   pending   - доказательство создано и учитывается. Это техническое
+#               состояние обработки, а НЕ уровень доверия и не «пока не
+#               считается»: внешней проверки источников в MVP нет вообще, и
+#               ждать от неё нечего. §3.4 FRD считает статус компетенции по
+#               всем непринятым-в-отказ доказательствам, то есть по pending в
+#               том числе;
+#   confirmed - зарезервировано под будущую внешнюю проверку источника
+#               (модуль 8/9). Сейчас его никто не выставляет;
+#   declined  - кандидат отказался раскрывать источник. Единственный статус,
+#               который выключает доказательство из расчёта, и он не штраф:
+#               статус компетенции просто считается так, будто источника не
+#               добавляли.
 PENDING = "pending"
 CONFIRMED = "confirmed"
 DECLINED = "declined"
@@ -218,6 +240,62 @@ def compute_status(facts: list[EvidenceFacts]) -> StatusView:
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?;])\s+|\n+")
 _EXCERPT_LIMIT = 220
 
+# Тип утверждения о компетенции. Сейчас в профиль попадает только positive;
+# остальные значения существуют, чтобы разбор можно было заменить на модель,
+# не меняя формат ответа.
+POSITIVE = "positive"
+NEGATIVE = "negative"
+HYPOTHETICAL = "hypothetical"
+UNCLEAR = "unclear"
+
+# Отрицание в русском стоит прямо перед тем, что отрицает: «отказались от
+# Redis», «не работал с Kubernetes». Но действует оно только до ближайшей
+# границы части предложения - иначе «не работал с Kubernetes, но занимался
+# Docker» отняло бы заодно и Docker.
+_CLAUSE_BREAK = re.compile(r"[,;:—]|\bи\b|\bно\b|\bа\b|\bзато\b|\bоднако\b|\bпоэтому\b")
+
+_NEGATIONS = (
+    "не работал",
+    "не использ",
+    "не занима",
+    "не приходилось",
+    "не довелось",
+    "не трогал",
+    "не писал",
+    "не знаю",
+    "нет опыта",
+    "без опыта",
+    "отказал",
+    "отказыва",
+    "ушли от",
+    "ушёл от",
+    "избега",
+    "перестал",
+    "выпилил",
+    "убрал",
+    "заменили",
+    "вместо",
+    "решили не",
+    "не стал",
+    "не будем",
+    "не буду",
+)
+
+# «Не только Redis, но и Kafka» - это не отрицание.
+_NEGATION_EXCEPTIONS = ("не только",)
+
+_HYPOTHETICALS = (
+    "если бы",
+    "было бы",
+    "хотел бы",
+    "хочу научиться",
+    "хочу освоить",
+    "планиру",
+    "собира",
+    "предстоит",
+    "буду изучать",
+)
+
 
 @dataclass(frozen=True)
 class ParsedItem:
@@ -226,10 +304,49 @@ class ParsedItem:
     category: str
     excerpt: str
     confidence: str
+    assertion_type: str = POSITIVE
 
 
 def _sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE_SPLIT.split(text) if s.strip()]
+
+
+def assertion_type(sentence: str, match_start: int) -> str:
+    """Что именно сказано про найденный навык.
+
+    Простая защита от ложных компетенций: «мы отказались от Redis» не значит,
+    что у кандидата есть опыт с Redis. Смотрим текст непосредственно перед
+    упоминанием - в русском отрицание стоит прямо перед тем, что отрицает.
+
+    Это MVP-эвристика, а не разбор смысла: она ловит очевидные конструкции и
+    сознательно не претендует на большее. Когда разбор заменят моделью, тип
+    утверждения будет приходить оттуда - формат ответа уже это допускает.
+    """
+    lowered = sentence.lower()
+
+    # Берём кусок предложения от ближайшей границы части до самого упоминания
+    # и такой же кусок после него: по-русски отрицание встаёт и до навыка
+    # («не работал с Kubernetes»), и после («с Kubernetes не работал»).
+    start = 0
+    for separator in _CLAUSE_BREAK.finditer(lowered[:match_start]):
+        start = separator.end()
+
+    tail_start = match_start
+    tail_break = _CLAUSE_BREAK.search(lowered[tail_start:])
+    tail_end = tail_start + tail_break.start() if tail_break else len(lowered)
+
+    window = lowered[start:match_start] + " " + lowered[tail_start:tail_end]
+
+    if any(exception in lowered[:match_start] for exception in _NEGATION_EXCEPTIONS):
+        return POSITIVE
+
+    if any(marker in window for marker in _HYPOTHETICALS):
+        return HYPOTHETICAL
+
+    if any(marker in window for marker in _NEGATIONS):
+        return NEGATIVE
+
+    return POSITIVE
 
 
 def _shorten(sentence: str) -> str:
@@ -256,11 +373,18 @@ def parse_free_text(text: str) -> list[ParsedItem]:
         matched_sentences: list[str] = []
 
         for sentence in sentences:
-            found_here = sum(len(rx.findall(sentence)) for rx in competency.regexes)
+            found_here = sum(
+                1
+                for rx in competency.regexes
+                for match in rx.finditer(sentence)
+                if assertion_type(sentence, match.start()) == POSITIVE
+            )
             if found_here:
                 hits += found_here
                 matched_sentences.append(sentence)
 
+        # Компетенция, о которой в тексте сказано только «не работал» или
+        # «отказались от», в профиль не попадает вовсе.
         if not hits:
             continue
 
@@ -280,6 +404,7 @@ def parse_free_text(text: str) -> list[ParsedItem]:
                 category=competency.category,
                 excerpt=_shorten(matched_sentences[0]),
                 confidence=confidence,
+                assertion_type=POSITIVE,
             )
         )
 

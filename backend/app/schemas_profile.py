@@ -77,8 +77,6 @@ class BlindWitnessIn(BaseModel):
 
     answer: str = Field(min_length=1, max_length=20000)
     statement_ids: list[str] = Field(default_factory=list)
-    # Необязательная пометка, почему материалы не раскрываются (FR4.3).
-    note: str | None = Field(default=None, max_length=500)
 
 
 class DeclineIn(BaseModel):
