@@ -203,20 +203,6 @@
     white-space: nowrap;
   }
   .who-since { font-size: 12.5px; color: var(--muted); }
-  .badge {
-    display: inline-block;
-    margin-bottom: 14px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(110, 231, 168, .12);
-    color: var(--ok);
-    font-size: 12.5px;
-  }
-  .next {
-    margin: 0 0 20px;
-    font-size: 13.5px;
-    color: var(--muted);
-  }
   .logout {
     width: 100%;
     padding: 12px;
@@ -287,31 +273,32 @@
       </p>
     </section>
 
-    <!-- Экран после успешного входа -->
+    <!-- Экран после успешного входа: профиль, Evidence и карта доказательств -->
     <section id="view-signed" class="signed" hidden>
-      <h1>Вы в профиле</h1>
-      <p class="sub">Пока здесь только учётная запись. Профиль начнёт наполняться со следующего модуля.</p>
-
-      <div class="who">
-        <div class="avatar" id="avatar"></div>
-        <div class="who-text">
-          <div class="who-email" id="who-email"></div>
-          <div class="who-since" id="who-since"></div>
-        </div>
-      </div>
-
-      <span class="badge" id="badge">Вход выполнен</span>
-
-      <p class="next">
-        Дальше по роадмапу — импорт резюме и One-Click Enrichment: профиль заполняется
-        из ваших источников, а не пустой анкетой.
+      <h1>Ваш профиль</h1>
+      <p class="sub">
+        Не резюме, а то, что за ним стоит: компетенции и доказательства, которые их подтверждают.
       </p>
 
-      <button type="button" class="logout" id="logout">Выйти</button>
+      <div class="profile-head">
+        <div class="who">
+          <div class="avatar" id="avatar"></div>
+          <div class="who-text">
+            <div class="who-email" id="who-email"></div>
+            <div class="who-since" id="who-since"></div>
+          </div>
+        </div>
+        <button type="button" class="logout" id="logout">Выйти</button>
+      </div>
+
+      <div id="profile-root"></div>
     </section>
   </main>
 
 <script type="module">
+  import { api } from './src/api.js'
+  import { initProfile, resetProfile } from './src/profile.js'
+
   const $ = id => document.getElementById(id)
 
   const viewAuth   = $('view-auth')
@@ -355,25 +342,6 @@
     }
   }
 
-  /* ---------- обращения к API ---------- */
-
-  async function api(path, options = {}) {
-    const response = await fetch(path, {
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      ...options
-    })
-
-    let payload = null
-    try {
-      payload = response.status === 204 ? null : await response.json()
-    } catch {
-      payload = null
-    }
-
-    return { ok: response.ok, status: response.status, payload }
-  }
-
   /* ---------- переключение экранов ---------- */
 
   function showAuth() {
@@ -390,6 +358,7 @@
     $('who-since').textContent = `В PurpJob с ${since}`
     viewAuth.hidden = true
     viewSigned.hidden = false
+    initProfile()
   }
 
   function setMode(next) {
@@ -566,6 +535,7 @@
     logoutEl.disabled = false
     emailEl.value = ''
     pwEl.value = ''
+    resetProfile()
     setMode('login')
     showAuth()
   })

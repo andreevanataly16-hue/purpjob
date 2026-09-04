@@ -32,3 +32,6 @@ dist/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Загруженные кандидатом файлы-артефакты (модуль 2)
+backend/uploads/

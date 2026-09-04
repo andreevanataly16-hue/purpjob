@@ -31,5 +31,9 @@ class Settings(BaseSettings):
     # Минимальная длина пароля. Дублируется в валидации на фронтенде.
     password_min_length: int = 8
 
+    # Куда складываются файлы-артефакты кандидата (модуль 2). В тестах
+    # переопределяется переменной окружения UPLOAD_DIR на временную папку.
+    upload_dir: Path = PROJECT_ROOT / "backend" / "uploads"
+
 
 settings = Settings()

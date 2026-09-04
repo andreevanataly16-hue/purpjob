@@ -15,6 +15,10 @@ import pytest
 _db_file = Path(tempfile.mkdtemp()) / "test.sqlite3"
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{_db_file}"
 
+# Загруженные в тестах файлы не должны попадать в рабочую папку проекта.
+_uploads = Path(tempfile.mkdtemp()) / "uploads"
+os.environ["UPLOAD_DIR"] = str(_uploads)
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db import Base, engine  # noqa: E402
@@ -33,3 +37,10 @@ def client():
 @pytest.fixture
 def credentials():
     return {"email": "nataly@example.com", "password": "verysecret123"}
+
+
+@pytest.fixture
+def signed_client(client, credentials):
+    """Клиент с уже открытой сессией: модуль 2 весь под входом."""
+    client.post("/api/auth/register", json=credentials)
+    return client
