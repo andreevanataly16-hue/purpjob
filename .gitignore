@@ -1,0 +1,23 @@
+# OS / OneDrive
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Claude Code
+.claude/settings.local.json
+
+# Секреты и окружение
+.env
+.env.*
+*.key
+*.pem
+
+# Логи и временные файлы
+*.log
+tmp/
+temp/
