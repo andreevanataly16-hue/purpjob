@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PurpJob — Hello World</title>
+<style>
+  :root {
+    --bg: #14101c;
+    --card: #1e1830;
+    --line: #322a4a;
+    --purple: #a06bff;
+    --purple-soft: #c9aaff;
+    --text: #ece8f5;
+    --muted: #9b93ae;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    background: radial-gradient(1000px 600px at 50% -10%, #2b1f4d 0%, var(--bg) 60%);
+    color: var(--text);
+    font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 620px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 44px 40px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--purple-soft);
+  }
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--purple);
+    box-shadow: 0 0 12px var(--purple);
+  }
+  h1 {
+    margin: 22px 0 10px;
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+  }
+  h1 span { color: var(--purple); }
+  .tagline { margin: 0 0 30px; color: var(--muted); }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 30px;
+  }
+  .flow b {
+    padding: 7px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--purple-soft);
+    background: rgba(160, 107, 255, .07);
+  }
+  .flow i { color: var(--muted); font-style: normal; align-self: center; }
+  .status {
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .status strong { color: var(--text); font-weight: 600; }
+  @media (max-width: 520px) {
+    .card { padding: 32px 24px; }
+    h1 { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span class="dot"></span>PurpJob</div>
+
+    <h1>Hello, <span>World</span></h1>
+    <p class="tagline">Инфраструктура профессионального доверия.</p>
+
+    <div class="flow">
+      <b>Profile</b><i>→</i>
+      <b>Evidence</b><i>→</i>
+      <b>PROF / Trust</b><i>→</i>
+      <b>Match</b>
+    </div>
+
+    <p class="status">
+      <strong>Проект инициализирован.</strong><br>
+      Каркас репозитория и стартовая страница. Функционал ещё не разрабатывался —
+      следующий шаг определяется модулями 1–9 (MVP-0) из <code>docs/roadmap.md</code>.
+    </p>
+  </main>
+</body>
+</html>
