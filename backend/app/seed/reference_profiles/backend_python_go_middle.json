@@ -1,0 +1,168 @@
+{
+  "id": "ref_backend_fullstack_python_go_middle",
+  "segment": "Backend/Fullstack (Python/Go)",
+  "segment_ru": "Backend/Fullstack (Python/Go)",
+  "level": "Middle",
+  "level_ru": "Middle",
+  "_convention": {
+    "weights": "Единый пул: сумма weight по ВСЕМ компетенциям профиля равна 1.0, а не по 1.0 на категорию. Так вес категории task_complexity виден напрямую (0.23 у Middle против 0.33 у Senior).",
+    "taxonomy_keys": "Ключи компетенций модуля 2 (backend/app/taxonomy.py), из статусов которых берётся статус этой компетенции. Если ключей несколько, берётся лучший статус: кандидату не обязательно знать и Python, и Go.",
+    "required_depth": "Требование эталона, а не оценка кандидата. На радаре превращается в reference_value (basic 0.4, working 0.7, deep 1.0).",
+    "calibration": "Веса и глубины — курируемая гипотеза первого сегмента (Гл. 13 мастер-документа), а не проверенная модель. Правятся здесь, без изменения кода."
+  },
+  "competencies": [
+    {
+      "competency_id": "core_language",
+      "name_ru": "Python или Go",
+      "short_ru": "Язык",
+      "category": "hard_skill",
+      "weight": 0.12,
+      "required_depth": "deep",
+      "taxonomy_keys": ["Python", "Go"]
+    },
+    {
+      "competency_id": "rest_api_design",
+      "name_ru": "Проектирование REST API",
+      "short_ru": "API",
+      "category": "hard_skill",
+      "weight": 0.10,
+      "required_depth": "working",
+      "taxonomy_keys": ["REST API design", "gRPC"]
+    },
+    {
+      "competency_id": "database_design",
+      "name_ru": "Проектирование баз данных",
+      "short_ru": "Базы данных",
+      "category": "hard_skill",
+      "weight": 0.09,
+      "required_depth": "working",
+      "taxonomy_keys": ["Database design", "PostgreSQL"]
+    },
+    {
+      "competency_id": "query_optimization",
+      "name_ru": "Оптимизация запросов",
+      "short_ru": "Запросы",
+      "category": "hard_skill",
+      "weight": 0.06,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Query optimization"]
+    },
+    {
+      "competency_id": "caching",
+      "name_ru": "Кеширование",
+      "short_ru": "Кеш",
+      "category": "hard_skill",
+      "weight": 0.05,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Caching"]
+    },
+    {
+      "competency_id": "message_queues",
+      "name_ru": "Очереди сообщений",
+      "short_ru": "Очереди",
+      "category": "hard_skill",
+      "weight": 0.05,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Message queues"]
+    },
+    {
+      "competency_id": "async_programming",
+      "name_ru": "Асинхронное программирование",
+      "short_ru": "Асинхронность",
+      "category": "hard_skill",
+      "weight": 0.06,
+      "required_depth": "working",
+      "taxonomy_keys": ["Asynchronous programming"]
+    },
+    {
+      "competency_id": "testing",
+      "name_ru": "Тестирование",
+      "short_ru": "Тесты",
+      "category": "hard_skill",
+      "weight": 0.08,
+      "required_depth": "working",
+      "taxonomy_keys": ["Testing"]
+    },
+    {
+      "competency_id": "containers",
+      "name_ru": "Docker и Kubernetes",
+      "short_ru": "Контейнеры",
+      "category": "hard_skill",
+      "weight": 0.05,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Docker", "Kubernetes"]
+    },
+    {
+      "competency_id": "ci_cd",
+      "name_ru": "CI/CD",
+      "short_ru": "CI/CD",
+      "category": "hard_skill",
+      "weight": 0.04,
+      "required_depth": "basic",
+      "taxonomy_keys": ["CI/CD"]
+    },
+    {
+      "competency_id": "observability",
+      "name_ru": "Мониторинг и наблюдаемость",
+      "short_ru": "Мониторинг",
+      "category": "hard_skill",
+      "weight": 0.04,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Observability"]
+    },
+    {
+      "competency_id": "security",
+      "name_ru": "Безопасность",
+      "short_ru": "Безопасность",
+      "category": "hard_skill",
+      "weight": 0.03,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Security"]
+    },
+    {
+      "competency_id": "high_load",
+      "name_ru": "Высокие нагрузки",
+      "short_ru": "Нагрузки",
+      "category": "task_complexity",
+      "weight": 0.06,
+      "required_depth": "basic",
+      "taxonomy_keys": ["High load systems"]
+    },
+    {
+      "competency_id": "distributed_systems",
+      "name_ru": "Распределённые системы",
+      "short_ru": "Распределённые",
+      "category": "task_complexity",
+      "weight": 0.05,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Distributed systems"]
+    },
+    {
+      "competency_id": "system_from_scratch",
+      "name_ru": "Система с нуля",
+      "short_ru": "С нуля",
+      "category": "task_complexity",
+      "weight": 0.04,
+      "required_depth": "basic",
+      "taxonomy_keys": ["System from scratch"]
+    },
+    {
+      "competency_id": "large_scale_migration",
+      "name_ru": "Миграция систем",
+      "short_ru": "Миграции",
+      "category": "task_complexity",
+      "weight": 0.03,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Large scale migration"]
+    },
+    {
+      "competency_id": "performance_optimization",
+      "name_ru": "Оптимизация производительности",
+      "short_ru": "Производительность",
+      "category": "task_complexity",
+      "weight": 0.05,
+      "required_depth": "basic",
+      "taxonomy_keys": ["Performance optimization"]
+    }
+  ]
+}

@@ -195,3 +195,45 @@ class RawInput(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class ProfRole(Base):
+    """Целевая роль кандидата: сегмент фиксирован, уровень выбирает кандидат.
+
+    Снимок PROF.индекса в базе не хранится - он считается на каждый запрос
+    (§8 FRD). Хранить нужно только сам факт «кандидат отслеживает этот уровень».
+    """
+
+    __tablename__ = "prof_roles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "level", name="uq_prof_role_user_level"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    level: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VisibilityState(Base):
+    """Видимость профиля: hidden или visible, третьего в MVP нет (FR4.3).
+
+    По умолчанию hidden: кандидат приходит без намерения искать работу, и
+    Self-Audit не должен требовать публикации. Решение помечено в FRD как
+    открытый вопрос к продукту (§9) - если ответ будет другим, меняется
+    значение по умолчанию здесь.
+    """
+
+    __tablename__ = "visibility_states"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    mode: Mapped[str] = mapped_column(String(20), default="hidden", nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
