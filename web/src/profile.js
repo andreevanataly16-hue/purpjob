@@ -126,7 +126,6 @@ const SKELETON = `
       <p class="question">${BLIND_WITNESS_QUESTION}</p>
       <textarea id="bw-answer" placeholder="Развилки и логика выбора — без названий, кода и коммерческих деталей"></textarea>
       <div class="row" style="margin-top:12px">
-        <input type="text" id="bw-note" placeholder="Пометка для себя — необязательно">
         <button type="button" class="action" id="bw-btn">Подтвердить без раскрытия</button>
         <button type="button" class="ghost" id="mirror-btn" disabled
           title="Появится вместе с Contextual Probe">Зеркальная задача — скоро</button>
@@ -459,7 +458,6 @@ async function acceptParsed() {
 
 async function sendBlindWitness() {
   const answer = $('bw-answer').value.trim()
-  const note = $('bw-note').value.trim()
   message('intake-msg', '')
 
   if (answer.length < 20) {
@@ -471,7 +469,7 @@ async function sendBlindWitness() {
   busy(button, true, 'Сохраняем…')
   const result = await mutate('/api/profile/evidence/blind-witness', {
     method: 'POST',
-    body: JSON.stringify({ answer, note: note || null, statement_ids: targetIds() })
+    body: JSON.stringify({ answer, statement_ids: targetIds() })
   })
   busy(button, false)
 
@@ -481,7 +479,6 @@ async function sendBlindWitness() {
   }
 
   $('bw-answer').value = ''
-  $('bw-note').value = ''
   ui.target = null
   renderTarget()
   message('intake-msg', 'Готово. Компетенция подтверждена, материалы остались закрытыми.', 'ok')

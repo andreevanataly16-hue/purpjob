@@ -334,10 +334,18 @@ async def add_file(
     if not content:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Файл пустой.")
 
+    # Сначала проверяем, к чему привязываем, и только потом пишем на диск:
+    # иначе неверный идентификатор оставил бы файл-сироту в хранилище.
+    targets = [
+        _get_statement(db, user, statement_id)
+        for statement_id in (s.strip() for s in statement_ids.split(",") if s.strip())
+    ]
+
     folder = Path(settings.upload_dir) / str(user.id)
     folder.mkdir(parents=True, exist_ok=True)
     stored_name = f"{uuid.uuid4().hex}{extension}"
-    (folder / stored_name).write_bytes(content)
+    stored_path = folder / stored_name
+    stored_path.write_bytes(content)
 
     evidence = Evidence(
         user_id=user.id,
@@ -347,11 +355,15 @@ async def add_file(
         status=PENDING,
     )
     db.add(evidence)
+    evidence.statements.extend(targets)
 
-    for statement_id in [s.strip() for s in statement_ids.split(",") if s.strip()]:
-        evidence.statements.append(_get_statement(db, user, statement_id))
-
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        # Запись в базу не прошла - файл на диске тоже не нужен.
+        db.rollback()
+        stored_path.unlink(missing_ok=True)
+        raise
     return _profile(db, user)
 
 
@@ -419,6 +431,13 @@ def add_blind_witness(
 
     Ни названия клиента, ни кода, ни документов здесь нет и быть не может -
     сюда приходит только ответ кандидата, и он же единственное, что сохраняется.
+
+    Слепой свидетель - это НЕ отказ. Кандидат подтверждает, что опыт есть, и
+    объясняет логику решений; он лишь не раскрывает материалы. Поэтому
+    DeclineRecord здесь не создаётся: отказ - это отдельное явное действие
+    кандидата «не подтверждать / не раскрывать этот факт», и только оно.
+    Иначе NDA превращался бы в пометку «отказался», то есть в наказание за
+    отсутствие публичного следа.
     """
     evidence = Evidence(
         user_id=user.id,
@@ -448,18 +467,10 @@ def add_blind_witness(
                 )
             )
 
+    # Пометка «материалы не раскрывались» живёт на самом доказательстве
+    # (Evidence.nda), а не отдельной записью об отказе.
     for statement in statements:
         evidence.statements.append(statement)
-        # Сам факт «материалы не раскрывались» фиксируется отдельно (FR4.2):
-        # в профиле видно, что за компетенцией стоит закрытый проект.
-        db.add(
-            DeclineRecord(
-                user_id=user.id,
-                target_type="statement",
-                target_id=statement.id,
-                reason=data.note,
-            )
-        )
 
     db.commit()
     return _profile(db, user)
