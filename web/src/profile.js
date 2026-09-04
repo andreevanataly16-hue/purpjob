@@ -9,6 +9,7 @@ import './profile.css'
 import { api, apiUpload, errorText } from './api.js'
 import { applyProfile, clearProfile, getState, loadProfile, mutate, subscribe } from './store.js'
 import { PROF_SKELETON, initProf, renderProf, resetProf } from './prof.js'
+import { PROBE_SKELETON, askAbout, initProbe, renderProbe, resetProbe } from './probe.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -94,6 +95,8 @@ const SKELETON = `
   <div class="counters" id="counters"></div>
 
   ${PROF_SKELETON}
+
+  ${PROBE_SKELETON}
 
   <section class="block">
     <h2>Расскажите о проекте</h2>
@@ -389,6 +392,7 @@ function render(state) {
   renderMap(state)
   renderTarget()
   renderProf(state)
+  renderProbe(state)
 }
 
 /* ---------- действия ---------- */
@@ -666,7 +670,8 @@ export async function initProfile() {
 
     // Белое пятно закрывается инструментами модуля 2, поэтому PROF.индекс
     // получает ту же точку входа, что и кнопка «Усилить» в карте доказательств.
-    initProf({ onStrengthen: strengthen, getState, root })
+    initProf({ onStrengthen: strengthen, onProbe: askAbout, getState, root })
+    initProbe({ getState, root })
   }
 
   document.querySelector('.card').classList.add('wide')
@@ -676,6 +681,7 @@ export async function initProfile() {
 
 export function resetProfile() {
   resetProf()
+  resetProbe()
   ui.parsed = null
   ui.rawInputId = null
   ui.target = null

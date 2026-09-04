@@ -586,9 +586,12 @@ def answer_follow_up(
     answer = db.get(ProbeAnswer, follow_up.answer_id)
     question = db.get(ProbeQuestion, answer.question_id)
 
+    # Оцениваем только то, что написал кандидат: текст самого уточняющего
+    # вопроса иначе засчитывался бы ему как конкретика.
+    candidate_text = f"{answer.text}\n{data.text}"
     full_text = f"{answer.text}\n\n{follow_up.text_ru}\n{data.text}"
 
-    if understanding_signal(full_text, _expected_terms(question)):
+    if understanding_signal(candidate_text, _expected_terms(question)):
         _finalize(db, user, question, answer, full_text)
     # Иначе не происходит ничего: ни доказательства, ни штрафа (§5.6, строка 3).
 

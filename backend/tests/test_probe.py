@@ -9,7 +9,7 @@ from dataclasses import fields
 
 from app.db import SessionLocal
 from app.declines import TARGET_QUESTION
-from app.enrichment import MEDIUM, TYPE_PROBE_ANSWER
+from app.enrichment import MEDIUM, STRONG, TYPE_PROBE_ANSWER
 from app.models import DeclineRecord, ProbeAnswer, ProbeFeedback, ProbeQuestion
 from app.probe import (
     FREE_TEXT,
@@ -124,12 +124,23 @@ def test_templates_never_offer_answer_options():
         assert not any(marker in lowered for marker in forbidden), template.id
 
 
-def test_templates_elicit_reasoning_not_a_single_fact():
-    """FR3.2: вопрос про «почему/как», а не про запоминание строки."""
-    markers = ("почему", "как ", "как вы", "что бы", "за счёт", "по каким", "что произойдёт")
+def test_templates_ask_open_questions_without_a_single_right_answer():
+    """FR3.2: открытый вопрос, а не проверка памяти.
+
+    Машинно проверяется то, что проверяется машинно: вопрос открытый (есть
+    вопросительное слово, ответить «да/нет» нельзя) и не построен на заученном
+    факте. Что вопрос действительно про логику решений - правило авторства
+    заготовок, тестом это не доказывается.
+    """
+    open_words = ("что", "как", "почему", "зачем", "где", "какой", "какое", "чем", "кто", "по каким")
+    # У такого вопроса есть одна правильная строка в ответе - это память.
+    recall = ("в каком году", "как называется", "сколько версий", "перечислите", "назовите все")
+
     for template in TEMPLATES:
         lowered = template.text.lower()
-        assert any(marker in lowered for marker in markers), template.id
+        assert lowered.rstrip().endswith("?"), template.id
+        assert any(word in lowered for word in open_words), template.id
+        assert not any(marker in lowered for marker in recall), template.id
 
 
 def test_no_correct_answer_is_stored_anywhere():
@@ -326,10 +337,13 @@ def test_confirming_answer_gives_understanding_but_no_new_competency(signed_clie
         assert answer.understanding_signal is True
         assert answer.new_competency_signal is False
 
+    # К описанию кандидата добавился независимый источник другого типа -
+    # по правилу §3.4 модуля 2 это уже Strong, и считает его модуль 2, а не
+    # Contextual Probe.
     snapshot = signed_client.get(PROF).json()["snapshots"][0]
     database = next(c for c in snapshot["components"] if c["competency_id"] == "database_design")
-    assert database["status"] == MEDIUM
-    assert "Contextual Probe" in database["reason"]
+    assert database["status"] == STRONG
+    assert "database_design" not in snapshot["white_spots"]
 
 
 def test_revealed_competency_gives_both_signals(signed_client):

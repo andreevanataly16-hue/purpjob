@@ -340,6 +340,98 @@ TEMPLATES: tuple[Template, ...] = (
 )
 
 
+# --- вопросы вокруг приложенной ссылки или файла -------------------------
+#
+# Цитаты нет, но артефакт есть: спрашиваем про то, что кандидат приложил сам.
+# Без этих заготовок ссылка на репозиторий уводила бы в запасной путь, хотя
+# материал у нас есть (FR2.2).
+
+SOURCE_TEMPLATES: tuple[Template, ...] = (
+    Template(
+        "rest_api_design_source", "rest_api_design", "source",
+        "Вы приложили {detail}. Как там устроен контракт на ошибки и почему именно так?",
+        expected_terms=("код", "статус", "ошибк", "ретрай", "идемпотент"),
+    ),
+    Template(
+        "database_design_source", "database_design", "source",
+        "Вы приложили {detail}. Какое решение по схеме данных там было самым спорным и "
+        "чем вы его обосновали?",
+    ),
+    Template(
+        "query_optimization_source", "query_optimization", "source",
+        "Вы приложили {detail}. Какой запрос там самый тяжёлый и что вы с ним делали?",
+    ),
+    Template(
+        "caching_source", "caching", "source",
+        "Вы приложили {detail}. Как там устроена инвалидация кеша и что будет, если он "
+        "разом опустеет?",
+        expected_terms=("инвалид", "ttl", "прогрев", "промах", "версион"),
+    ),
+    Template(
+        "message_queues_source", "message_queues", "source",
+        "Вы приложили {detail}. Что там происходит с сообщением, если обработчик упал на "
+        "середине?",
+        expected_terms=("повтор", "дедуплик", "идемпотент", "ack", "офсет", "дубл"),
+    ),
+    Template(
+        "async_programming_source", "async_programming", "source",
+        "Вы приложили {detail}. Где там асинхронность даёт выигрыш, а где вы её сознательно "
+        "не стали использовать?",
+    ),
+    Template(
+        "testing_source", "testing", "source",
+        "Вы приложили {detail}. Что там покрыто тестами в первую очередь и почему именно это?",
+        expected_terms=("мок", "интеграцион", "юнит", "контракт", "фикстур", "покрыт"),
+    ),
+    Template(
+        "containers_source", "containers", "source",
+        "Вы приложили {detail}. Что в сборке или запуске там ломалось чаще всего?",
+    ),
+    Template(
+        "ci_cd_source", "ci_cd", "source",
+        "Вы приложили {detail}. Как там выкатывается изменение и что происходит при "
+        "неудачном релизе?",
+        expected_terms=("откат", "rollback", "стенд", "канар", "миграц", "прогон"),
+    ),
+    Template(
+        "observability_source", "observability", "source",
+        "Вы приложили {detail}. По какому сигналу там первым видно, что что-то пошло не так?",
+        expected_terms=("метрик", "алерт", "лог", "трейс", "перцентил", "дашборд"),
+    ),
+    Template(
+        "security_source", "security", "source",
+        "Вы приложили {detail}. Где там граница доверия и что проверяется на входе?",
+        expected_terms=("токен", "подпис", "валидац", "срок", "шифр", "прав", "секрет"),
+    ),
+    Template(
+        "high_load_source", "high_load", "source",
+        "Вы приложили {detail}. Какую нагрузку это выдерживает и что упрётся первым?",
+        expected_terms=("перцентил", "p95", "p99", "латен", "задержк", "очеред", "нагрузочн"),
+    ),
+    Template(
+        "distributed_systems_source", "distributed_systems", "source",
+        "Вы приложили {detail}. Что там происходит, если один из сервисов не ответил?",
+        expected_terms=("идемпотент", "повтор", "компенсац", "транзакц", "согласован", "саг"),
+    ),
+    Template(
+        "system_from_scratch_source", "system_from_scratch", "source",
+        "Вы приложили {detail}. Какое решение из самых первых вы бы сегодня приняли иначе?",
+    ),
+    Template(
+        "large_scale_migration_source", "large_scale_migration", "source",
+        "Вы приложили {detail}. Как там был устроен откат и чем вы сверяли результат?",
+        expected_terms=("откат", "двойн", "сверк", "волн", "простой", "бэкап"),
+    ),
+    Template(
+        "performance_optimization_source", "performance_optimization", "source",
+        "Вы приложили {detail}. Что вы там измеряли до и после и какая гипотеза не "
+        "подтвердилась?",
+        expected_terms=("профил", "замер", "бенчмарк", "метрик", "секунд", "мс", "перцентил"),
+    ),
+)
+
+TEMPLATES = TEMPLATES + SOURCE_TEMPLATES
+
 # --- переформулировки для отказа по NDA (FR5.2) --------------------------
 #
 # Ни названия проекта, ни материалов: спрашиваем ровно ту же логику, но в общем

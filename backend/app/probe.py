@@ -126,13 +126,15 @@ def pick_detail(artifacts: list[Artifact], taxonomy_keys: tuple[str, ...]) -> Ar
 
 
 def _choose_template(
-    competency_id: str, slot: str, used_template_ids: set[str]
+    competency_id: str, slot: str, used_template_ids: set[str], fresh_only: bool = False
 ) -> Template | None:
     options = [t for t in BY_COMPETENCY.get(competency_id, ()) if t.slot == slot]
     if not options:
         return None
     fresh = [t for t in options if t.id not in used_template_ids]
-    return (fresh or options)[0]
+    if fresh:
+        return fresh[0]
+    return None if fresh_only else options[0]
 
 
 def build_reason(competency_name_ru: str, target_type: str, mode: str) -> str:
@@ -208,6 +210,18 @@ def generate_question(
         detail = pick_detail(artifacts, taxonomy_keys)
         if detail is not None:
             slot = "quote" if detail.kind == "text" else "source"
+
+            # Сначала - неиспользованная заготовка под этот артефакт.
+            template = _choose_template(competency_id, slot, used, fresh_only=True)
+            if template is not None:
+                return build(template, detail, False)
+
+            # Свежих под артефакт нет: лучше задать запасной вопрос, чем
+            # повторить кандидату тот же самый - особенно после жалобы на него.
+            spare = _choose_template(competency_id, "none", used, fresh_only=True)
+            if spare is not None:
+                return build(spare, None, False)
+
             template = _choose_template(competency_id, slot, used)
             if template is not None:
                 return build(template, detail, False)

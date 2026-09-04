@@ -1,0 +1,104 @@
+/* Contextual Probe: экран одного вопроса (модуль 4). */
+
+.probe-idle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: var(--field);
+  font-size: 14px;
+}
+.probe-idle span { flex: 1; min-width: 200px; }
+
+.question {
+  padding: 18px;
+  border: 1px solid var(--purple);
+  border-radius: 14px;
+  background: rgba(160, 107, 255, .07);
+}
+.question.follow-up {
+  margin-top: 12px;
+  border-style: dashed;
+  background: rgba(160, 107, 255, .05);
+}
+
+/* «Почему этот вопрос» стоит над вопросом и не прячется. */
+.q-why {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--purple-soft);
+}
+.q-text {
+  margin: 0 0 14px;
+  font-size: 16.5px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+.probe-input { min-height: 150px; }
+.probe-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.probe-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.probe-actions .spacer { flex: 1; }
+.link-btn.nda { color: #ffc47a; }
+.link-btn.nda:hover { color: #ffd9a3; }
+
+/* Жалоба на вопрос */
+.feedback-form {
+  margin-top: 14px;
+  padding: 15px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--card);
+}
+.feedback-form h4 { margin: 0 0 10px; font-size: 14px; }
+.feedback-form label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.feedback-form input[type="radio"] { accent-color: var(--purple); }
+
+/* История вопросов */
+.history { margin-top: 18px; }
+.history-item {
+  padding: 13px 15px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--field);
+}
+.history-item .q-why { margin-bottom: 6px; }
+.history-item .q-text { font-size: 14.5px; font-weight: 500; margin-bottom: 8px; }
+.history-item .answer {
+  margin: 8px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.history-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.history-head h3 { margin: 0; font-size: 15px; }
+
+.counters .counter.muted b { color: var(--muted); }

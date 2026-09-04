@@ -301,8 +301,8 @@ function renderWhiteSpots(prof) {
         <div class="ev-actions">
           <button type="button" class="ghost" data-act="close-spot"
             data-competency="${item.competency_id}">Подтвердить</button>
-          <button type="button" class="ghost" disabled
-            title="Появится вместе с Contextual Probe">Ответить на вопрос — скоро</button>
+          <button type="button" class="ghost" data-act="probe-spot"
+            data-competency="${item.competency_id}">Ответить на вопрос</button>
         </div>
       </div>`).join('')}
     ${spots.length > SPOTS_SHOWN ? `
