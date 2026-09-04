@@ -378,3 +378,129 @@ class ProbeFeedback(Base):
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class NDACase(Base):
+    """Случай подтверждения под NDA (§4.1 FRD модуля 5).
+
+    Заводится, когда кандидат отказался отвечать на вопрос по NDA (модуль 4)
+    или сам попросил подтвердить компетенцию закрытым способом. Отсюда идут
+    оба метода - Слепой свидетель и зеркальная задача.
+    """
+
+    __tablename__ = "nda_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    competency_id: Mapped[str] = mapped_column(String(60), nullable=False)
+    statement_id: Mapped[int | None] = mapped_column(
+        ForeignKey("statements.id", ondelete="SET NULL"), nullable=True
+    )
+    source_evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
+    )
+    # Откуда пришёл случай: probe (отказ по вопросу) или white_spot.
+    origin: Mapped[str] = mapped_column(String(20), default="white_spot", nullable=False)
+
+    # Пока не подтверждена дисклеймером, дальше выбора метода дело не идёт
+    # (FR1.1 - это жёсткие ворота, а не пожелание).
+    disclaimer_ack_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    status: Mapped[str] = mapped_column(String(20), default="method_selection", nullable=False)
+    suggested_method: Mapped[str] = mapped_column(String(20), default="blind_witness", nullable=False)
+    chosen_method: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class NDAMethodSwitch(Base):
+    """Смена способа подтверждения (§4.2).
+
+    Пишется только для продуктовой аналитики: сколько раз кандидат передумал -
+    не повод его в чём-то ограничивать или как-то помечать.
+    """
+
+    __tablename__ = "nda_method_switches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("nda_cases.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    from_method: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_method: Mapped[str] = mapped_column(String(20), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class NDABlindWitnessQuestion(Base):
+    """Вопрос Слепого свидетеля и ответ на него (§4.3)."""
+
+    __tablename__ = "nda_blind_witness_questions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("nda_cases.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    template_id: Mapped[str] = mapped_column(String(60), nullable=False)
+    prompt_ru: Mapped[str] = mapped_column(Text, nullable=False)
+    # «Почему этот вопрос» - то же требование прозрачности, что в модуле 4.
+    reason_ru: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_terms: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Уточняющий вопрос Semantic Depth, если ответ оказался слишком общим.
+    follow_up_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+    follow_up_reason_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+    follow_up_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class NDAMirrorSolution(Base):
+    """Решение зеркальной задачи (§4.5).
+
+    Без объяснения логики решение не считается: расставленные узлы сами по себе
+    ничего не подтверждают.
+    """
+
+    __tablename__ = "nda_mirror_solutions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("nda_cases.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    scenario_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    # JSON-строка: [{"node_id": "n1", "order": 1, "role_ru": "..."}]
+    node_arrangement: Mapped[str] = mapped_column(Text, default="[]", nullable=False)
+    logic_explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    follow_up_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+    follow_up_reason_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+    follow_up_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

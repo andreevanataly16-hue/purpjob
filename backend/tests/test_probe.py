@@ -235,20 +235,39 @@ def test_history_keeps_questions_and_their_reasons(signed_client):
 # --- US5: отказ по NDA ----------------------------------------------------
 
 
-def test_nda_decline_offers_an_abstract_version_of_the_same_check(signed_client):
+def test_nda_decline_hands_the_case_over_to_the_alternative_flow(signed_client):
+    """Отказ по NDA открывает случай модуля 5, где кандидат выбирает способ.
+
+    Своей переформулировки у модуля 4 больше нет: §4.1 FRD модуля 5 прямо
+    заменяет её настоящим потоком альтернативной верификации.
+    """
     setup_profile(signed_client)
     question = ask(signed_client)
 
-    state = signed_client.post(
-        f"{PROBE}/questions/{question['id']}/decline", json={}
-    ).json()
+    state = signed_client.post(f"{PROBE}/questions/{question['id']}/decline", json={}).json()
 
-    replacement = state["question"]
-    assert replacement is not None
-    assert replacement["nda_abstract"] is True
-    assert replacement["competency_id"] == question["competency_id"]
-    assert replacement["id"] != question["id"]
     assert state["declined_count"] == 1
+    assert state["question"] is None or state["question"]["id"] != question["id"]
+
+    cases = signed_client.get("/api/nda").json()["cases"]
+    assert [c["competency_id"] for c in cases] == [question["competency_id"]]
+    assert cases[0]["origin"] == "probe"
+    assert {m["value"] for m in cases[0]["methods"]} == {"blind_witness", "mirror_task"}
+
+
+def test_declining_everything_after_an_nda_decline_costs_nothing(signed_client):
+    """FR5.3: через альтернативный способ никого не протаскивают силой."""
+    setup_profile(signed_client)
+    before = signed_client.get(PROF).json()["snapshots"][0]
+    question = ask(signed_client)
+
+    signed_client.post(f"{PROBE}/questions/{question['id']}/decline", json={})
+    case = signed_client.get("/api/nda").json()["cases"][0]
+    signed_client.post(f"/api/nda/cases/{case['id']}/decline", json={})
+
+    after = signed_client.get(PROF).json()["snapshots"][0]
+    assert after["overall_score"] == before["overall_score"]
+    assert after["white_spots"] == before["white_spots"]
 
 
 def test_nda_decline_uses_the_same_decline_record_as_module_two(signed_client):
@@ -265,24 +284,6 @@ def test_nda_decline_uses_the_same_decline_record_as_module_two(signed_client):
 
         stored = db.get(ProbeQuestion, record.target_id)
         assert stored.status == "declined_nda"
-
-
-def test_declining_the_rephrase_too_is_just_a_skip(signed_client):
-    """FR5.3: через переформулировку никого не протаскивают силой."""
-    setup_profile(signed_client)
-    question = ask(signed_client)
-    rephrase = signed_client.post(
-        f"{PROBE}/questions/{question['id']}/decline", json={}
-    ).json()["question"]
-
-    state = signed_client.post(
-        f"{PROBE}/questions/{rephrase['id']}/decline", json={}
-    ).json()
-
-    # Третьего вопроса по той же компетенции не появляется.
-    assert state["question"] is None or state["question"]["competency_id"] != question[
-        "competency_id"
-    ]
 
 
 def test_nda_decline_changes_no_score(signed_client):

@@ -8,7 +8,7 @@
 * отказ ничего и нигде не отнимает — он не понижает статус и не штрафует;
 * отказ обратим: кандидат может вернуться и раскрыть.
 
-Различается только `target_type`: evidence, statement или question.
+Различается только `target_type`: evidence, statement, question или ndacase.
 """
 
 from sqlalchemy import select
@@ -19,8 +19,10 @@ from app.models import DeclineRecord, User
 TARGET_EVIDENCE = "evidence"
 TARGET_STATEMENT = "statement"
 TARGET_QUESTION = "question"
+# Кандидат отказался от всех способов подтверждения под NDA (модуль 5, FR4.5).
+TARGET_NDACASE = "ndacase"
 
-TARGET_TYPES = (TARGET_EVIDENCE, TARGET_STATEMENT, TARGET_QUESTION)
+TARGET_TYPES = (TARGET_EVIDENCE, TARGET_STATEMENT, TARGET_QUESTION, TARGET_NDACASE)
 
 
 def record_decline(

@@ -38,10 +38,14 @@ QUOTE_LIMIT = 170
 TOO_GENERIC = "too_generic"
 JARGON_TRAP = "jargon_trap"
 
-# Режимы генерации из §7 FRD.
+# Режимы генерации из §7 FRD модуля 4 и §7 модуля 5.
 MODE_GROUNDED = "artifact_grounded"
 MODE_NDA = "ndaAbstract"
 MODE_FALLBACK = "fallback_template"
+# Метод Слепого свидетеля: структурный вопрос без привязки к артефакту.
+MODE_BLIND_WITNESS = "blind_witness_prompt"
+# Зеркальная задача: сценарий берётся из библиотеки, а не сочиняется на лету.
+MODE_MIRROR_TASK = "mirror_task_scenario"
 
 # Единственный допустимый формат ответа (US3, FR3.1).
 FREE_TEXT = "free_text"
@@ -144,6 +148,16 @@ def build_reason(competency_name_ru: str, target_type: str, mode: str) -> str:
     доказательствах или расхождение в профиле. Одной общей фразой на оба
     случая обойтись нельзя (FR4.2).
     """
+    if mode == MODE_BLIND_WITNESS:
+        return (
+            f"Метод Слепого свидетеля: спрашиваем структуру решения по компетенции "
+            f"«{competency_name_ru}» — не материалы и не код."
+        )
+    if mode == MODE_MIRROR_TASK:
+        return (
+            f"Зеркальная задача по компетенции «{competency_name_ru}»: похожие вводные, "
+            "но чужой проект в ней не участвует."
+        )
     if mode == MODE_NDA:
         return (
             f"Тот же предмет проверки — {competency_name_ru}, но без привязки к вашему "
@@ -202,8 +216,14 @@ def generate_question(
             follow_up=template.follow_up or DEFAULT_FOLLOW_UP,
         )
 
-    if mode == MODE_NDA:
-        template = _choose_template(competency_id, "nda", used)
+    if mode == MODE_MIRROR_TASK:
+        # Зеркальная задача - не вопрос: сценарий берётся из библиотеки
+        # отдельной функцией ниже, здесь возвращать нечего.
+        return None
+
+    if mode in (MODE_NDA, MODE_BLIND_WITNESS):
+        slot = "structure" if mode == MODE_BLIND_WITNESS else "nda"
+        template = _choose_template(competency_id, slot, used)
         return build(template, None, True) if template else None
 
     if mode == MODE_GROUNDED:
@@ -233,6 +253,17 @@ def generate_question(
 
 
 # --- разбор ответа --------------------------------------------------------
+
+
+def mirror_task_scenario(competency_id: str):
+    """Сценарий зеркальной задачи под компетенцию (режим MODE_MIRROR_TASK).
+
+    Живёт здесь, а не в модуле 5, чтобы точка входа в генерацию оставалась
+    одна: и вопрос, и сценарий берутся через этот модуль (FR2.3).
+    """
+    from app.mirror_tasks import scenario_for
+
+    return scenario_for(competency_id)
 
 
 def is_too_generic(text: str) -> bool:

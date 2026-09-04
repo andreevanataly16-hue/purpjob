@@ -1,0 +1,135 @@
+/* Подтверждение под NDA: дисклеймер, выбор способа, зеркальная задача. */
+
+.nda-case {
+  padding: 18px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--field);
+}
+.nda-case.active { border-color: #ffc47a; background: rgba(255, 196, 122, .05); }
+
+.nda-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.nda-head .name { font-size: 15.5px; font-weight: 600; flex: 1; min-width: 160px; }
+
+/* Дисклеймер */
+.disclaimer-card {
+  padding: 16px;
+  border: 1px solid rgba(255, 196, 122, .3);
+  border-radius: 12px;
+  background: rgba(255, 196, 122, .06);
+}
+.disclaimer-card p { margin: 0 0 12px; font-size: 14px; }
+.disclaimer-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.disclaimer-lists h4 { margin: 0 0 6px; font-size: 13px; }
+.disclaimer-lists ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.disclaimer-lists .ok h4 { color: var(--ok); }
+.disclaimer-lists .never h4 { color: var(--danger); }
+.legal-note { margin: 0 0 12px; font-size: 12.5px; color: #ffc47a; }
+
+/* Выбор способа */
+.methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.method-card {
+  padding: 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.method-card:hover:not(:disabled) { border-color: var(--purple); }
+.method-card[aria-pressed="true"] { border-color: var(--purple); background: rgba(160, 107, 255, .1); }
+.method-card:disabled { opacity: .5; cursor: default; }
+.method-card b { display: block; margin-bottom: 5px; font-size: 14.5px; }
+.method-card span { font-size: 12.5px; color: var(--muted); }
+.method-card .suggested { color: var(--purple-soft); font-size: 12px; }
+
+/* Слепой свидетель */
+.bw-question { margin-bottom: 14px; }
+.bw-question .q-why { margin-bottom: 8px; }
+.bw-question .q-text { font-size: 15px; margin-bottom: 10px; }
+.bw-answered {
+  margin: 8px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+/* Зеркальная задача */
+.mirror-framing {
+  margin: 0 0 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(160, 107, 255, .3);
+  border-radius: 10px;
+  background: rgba(160, 107, 255, .08);
+  font-size: 13px;
+  color: var(--purple-soft);
+}
+.mirror-instructions { margin: 0 0 14px; font-size: 14px; }
+.nodes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.node-chip {
+  padding: 9px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.node-chip:hover:not(:disabled) { border-color: var(--purple); }
+.node-chip:disabled { opacity: .4; cursor: default; }
+
+.placed { margin-bottom: 12px; }
+.placed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+.placed-row .order {
+  width: 24px; height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(160, 107, 255, .18);
+  color: var(--purple-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.placed-row .label { font-size: 13.5px; min-width: 120px; }
+.placed-row input {
+  flex: 1;
+  min-width: 120px;
+  padding: 7px 10px;
+  background: var(--field);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.nda-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.nda-actions .spacer { flex: 1; }

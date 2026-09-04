@@ -303,6 +303,8 @@ function renderWhiteSpots(prof) {
             data-competency="${item.competency_id}">Подтвердить</button>
           <button type="button" class="ghost" data-act="probe-spot"
             data-competency="${item.competency_id}">Ответить на вопрос</button>
+          <button type="button" class="ghost" data-act="nda-spot"
+            data-competency="${item.competency_id}">Проект под NDA</button>
         </div>
       </div>`).join('')}
     ${spots.length > SPOTS_SHOWN ? `

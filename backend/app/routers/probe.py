@@ -39,7 +39,6 @@ from app.models import (
 from app.probe import (
     FREE_TEXT,
     MODE_GROUNDED,
-    MODE_NDA,
     TARGET_WHITE_SPOT,
     Artifact,
     build_follow_up_reason,
@@ -50,6 +49,7 @@ from app.probe import (
 from app.prof import compute_snapshot
 from app.reference import ReferenceCompetency, get_profile
 from app.routers.auth import current_user
+from app.routers.nda import open_case
 from app.routers.prof import _statement_views
 from app.routers.profile import _ensure_statement, parse_id, public_id
 from app.schemas_probe import (
@@ -632,16 +632,18 @@ def decline_question(
         db, user, target_type=TARGET_QUESTION, target_id=question.id, reason=data.reason
     )
     question.status = "declined_nda"
+
+    # Дальше дело ведёт модуль 5: он показывает, что мы не спрашиваем никогда,
+    # и даёт выбрать способ подтверждения - структурные вопросы или зеркальную
+    # задачу. Своей переформулировки у модуля 4 больше нет (§4.1 модуля 5).
+    open_case(
+        db,
+        user,
+        competency_id=question.competency_id,
+        origin="probe",
+        source_evidence_id=question.artifact_evidence_id,
+    )
     db.commit()
-
-    # От абстрактной версии второй раз не переформулируем: это уже пропуск.
-    if question.nda_abstract:
-        return _state(db, user)
-
-    competency = _competency_by_id(question.competency_id)
-    if competency is not None:
-        _create_question(db, user, competency, mode=MODE_NDA)
-
     return _state(db, user)
 
 

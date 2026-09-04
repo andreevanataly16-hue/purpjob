@@ -12,7 +12,9 @@
            чтобы в аналитике их было видно отдельно;
   nda    - переформулировка после отказа по NDA (FR5.2): тот же предмет
            проверки, но без привязки к конкретному проекту - вопрос про логику
-           решений вообще, а не про закрытый материал.
+           решений вообще, а не про закрытый материал;
+  structure - Метод Слепого свидетеля (модуль 5): просим структуру решения -
+           узлы, границы, критические точки, - а не сам артефакт.
 
 Все формулировки открытые - «почему», «как», «что бы вы сделали, если». Ни
 вариантов ответа, ни единственно верной строки здесь нет и быть не может
@@ -447,7 +449,7 @@ NDA_TEMPLATES: tuple[Template, ...] = (
     Template(
         "rest_api_design_nda", "rest_api_design", "nda",
         "В общем виде: как вы проектируете поведение API при ошибке, которую "
-        "клиент не может исправить повтором запроса?",
+        "вызывающая сторона не может исправить повтором запроса?",
         grounded=False,
     ),
     Template(
@@ -543,6 +545,121 @@ NDA_TEMPLATES: tuple[Template, ...] = (
 )
 
 TEMPLATES = TEMPLATES + NDA_TEMPLATES
+
+# --- структурные вопросы Слепого свидетеля (модуль 5) --------------------
+#
+# «Какие три критических узла ты выделил» из главы 8 мастер-документа: просим
+# структуру решения, а не сам документ, код или регламент. Ни один из этих
+# вопросов не может спрашивать название клиента, точные цифры или файл - это
+# жёсткое ограничение содержания (FR1.3 модуля 5), а не пожелание к тону.
+
+STRUCTURE_TEMPLATES: tuple[Template, ...] = (
+    Template(
+        "core_language_structure", "core_language", "structure",
+        "Опишите структуру того решения: из каких частей оно состоит и какие две-три "
+        "из них были критическими?",
+        grounded=False,
+    ),
+    Template(
+        "rest_api_design_structure", "rest_api_design", "structure",
+        "Опишите структуру этого API: какие ресурсы в нём главные и где проходят "
+        "границы ответственности между ними?",
+        grounded=False,
+    ),
+    Template(
+        "database_design_structure", "database_design", "structure",
+        "Опишите структуру данных без названий: какие сущности главные, как они связаны "
+        "и какая связь оказалась самой неудобной?",
+        grounded=False,
+    ),
+    Template(
+        "query_optimization_structure", "query_optimization", "structure",
+        "Опишите структуру разбора: с чего вы начали, какие два-три шага оказались "
+        "решающими и как поняли, что дальше копать бессмысленно?",
+        grounded=False,
+    ),
+    Template(
+        "caching_structure", "caching", "structure",
+        "Опишите структуру кеш-слоя: какие узлы в нём есть, кто пишет, кто читает и "
+        "кто выселяет записи?",
+        grounded=False,
+    ),
+    Template(
+        "message_queues_structure", "message_queues", "structure",
+        "Опишите структуру потока сообщений: кто издатель, кто потребитель и какие "
+        "две-три точки были критическими для надёжности?",
+        grounded=False,
+    ),
+    Template(
+        "async_programming_structure", "async_programming", "structure",
+        "Опишите структуру асинхронной части: какие операции идут параллельно, где они "
+        "снова сходятся и что там могло сломаться?",
+        grounded=False,
+    ),
+    Template(
+        "testing_structure", "testing", "structure",
+        "Опишите структуру проверок: какие уровни тестов у вас были и какие два-три "
+        "места вы считали обязательными к покрытию?",
+        grounded=False,
+    ),
+    Template(
+        "containers_structure", "containers", "structure",
+        "Опишите структуру запуска: из каких шагов состоит путь от кода до работающего "
+        "сервиса и какие два-три шага были самыми хрупкими?",
+        grounded=False,
+    ),
+    Template(
+        "ci_cd_structure", "ci_cd", "structure",
+        "Опишите структуру пайплайна: какие этапы в нём есть и какие два-три из них "
+        "реально ловят проблемы?",
+        grounded=False,
+    ),
+    Template(
+        "observability_structure", "observability", "structure",
+        "Опишите структуру наблюдаемости: какие сигналы вы собираете и какие два-три "
+        "из них первыми показывают, что что-то не так?",
+        grounded=False,
+    ),
+    Template(
+        "security_structure", "security", "structure",
+        "Опишите структуру защиты: где проходят границы доверия и какие две-три "
+        "проверки стоят на этих границах?",
+        grounded=False,
+    ),
+    Template(
+        "high_load_structure", "high_load", "structure",
+        "Опишите структуру нагрузки: через какие узлы проходит запрос и какие два-три "
+        "из них упираются в потолок первыми?",
+        grounded=False,
+    ),
+    Template(
+        "distributed_systems_structure", "distributed_systems", "structure",
+        "Опишите структуру взаимодействия сервисов: какие шаги в операции есть и какие "
+        "два-три из них нельзя потерять?",
+        grounded=False,
+    ),
+    Template(
+        "system_from_scratch_structure", "system_from_scratch", "structure",
+        "Опишите структуру системы на старте: какие части появились первыми и какие "
+        "две-три из них определили всё остальное?",
+        grounded=False,
+    ),
+    Template(
+        "large_scale_migration_structure", "large_scale_migration", "structure",
+        "Опишите структуру переноса: из каких этапов он состоял и какие два-три из них "
+        "были точками невозврата?",
+        grounded=False,
+    ),
+    Template(
+        "performance_optimization_structure", "performance_optimization", "structure",
+        "Опишите структуру разбора производительности: что вы измеряли, в каком порядке "
+        "и какие два-три замера оказались решающими?",
+        grounded=False,
+    ),
+)
+
+TEMPLATES = TEMPLATES + STRUCTURE_TEMPLATES
+
 
 BY_COMPETENCY: dict[str, list[Template]] = {}
 for template in TEMPLATES:

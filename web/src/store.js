@@ -15,10 +15,11 @@ const EMPTY = { statements: [], evidence: [], declines: [] }
 let profile = EMPTY
 let prof = null
 let probe = null
+let nda = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe }
+  return { ...profile, prof, probe, nda }
 }
 
 export function getState() {
@@ -40,6 +41,7 @@ export function clearProfile() {
   profile = EMPTY
   prof = null
   probe = null
+  nda = null
   publish()
 }
 
@@ -56,9 +58,18 @@ function isProbe(payload) {
   return Boolean(payload && 'available' in payload && 'feedback_reasons' in payload)
 }
 
+function isNda(payload) {
+  return Boolean(payload && payload.disclaimer && Array.isArray(payload.cases))
+}
+
 async function refreshProbe() {
   const result = await api('/api/probe')
   if (result.ok && isProbe(result.payload)) probe = result.payload
+}
+
+async function refreshNda() {
+  const result = await api('/api/nda')
+  if (result.ok && isNda(result.payload)) nda = result.payload
 }
 
 async function refreshProf() {
@@ -70,7 +81,8 @@ export async function loadProfile() {
   const [profileResult] = await Promise.all([
     api('/api/profile'),
     refreshProf(),
-    refreshProbe()
+    refreshProbe(),
+    refreshNda()
   ])
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
@@ -82,7 +94,7 @@ export async function mutate(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProfile(result.payload)) {
     profile = result.payload
-    await Promise.all([refreshProf(), refreshProbe()])
+    await Promise.all([refreshProf(), refreshProbe(), refreshNda()])
     publish()
   }
   return result
@@ -96,7 +108,20 @@ export async function mutateProbe(path, options = {}) {
     probe = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await refreshProf()
+    await Promise.all([refreshProf(), refreshNda()])
+    publish()
+  }
+  return result
+}
+
+/* Подтверждение под NDA меняет доказательства и индекс - перечитываем всё. */
+export async function mutateNda(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isNda(result.payload)) {
+    nda = result.payload
+    const profileResult = await api('/api/profile')
+    if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
+    await Promise.all([refreshProf(), refreshProbe()])
     publish()
   }
   return result

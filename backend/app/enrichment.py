@@ -57,6 +57,8 @@ TYPE_BLIND_WITNESS = "blind_witness_answer"
 # Ответ на вопрос Contextual Probe (модуль 4). Отдельный тип, а не
 # blind_witness_answer: происхождение доказательства должно быть видно.
 TYPE_PROBE_ANSWER = "probe_answer"
+# Решение зеркальной задачи (модуль 5): структура плюс объяснение логики.
+TYPE_MIRROR_TASK = "mirror_task_solution"
 
 EVIDENCE_TYPES = (
     TYPE_LINK,
@@ -64,6 +66,7 @@ EVIDENCE_TYPES = (
     TYPE_FREE_TEXT,
     TYPE_BLIND_WITNESS,
     TYPE_PROBE_ANSWER,
+    TYPE_MIRROR_TASK,
 )
 SOURCE_CATEGORIES = ("github", "gitlab", "linkedin", "portfolio", "article", "video", "other")
 
@@ -97,6 +100,7 @@ _SOURCE_LABELS = {
     TYPE_FREE_TEXT: "ваше описание",
     TYPE_BLIND_WITNESS: "ответ Слепого свидетеля",
     TYPE_PROBE_ANSWER: "ответ на вопрос Contextual Probe",
+    TYPE_MIRROR_TASK: "решение зеркальной задачи",
 }
 
 
@@ -146,7 +150,7 @@ def is_independent(fact: EvidenceFacts) -> bool:
     только на узнаваемую площадку: произвольный URL проверить нечем, поэтому
     он остаётся словами кандидата (в §3.4 это «unverified link»).
     """
-    if fact.type in (TYPE_FILE, TYPE_BLIND_WITNESS, TYPE_PROBE_ANSWER):
+    if fact.type in (TYPE_FILE, TYPE_BLIND_WITNESS, TYPE_PROBE_ANSWER, TYPE_MIRROR_TASK):
         return True
     return fact.type == TYPE_LINK and fact.source_category not in (None, "other")
 
@@ -207,6 +211,10 @@ def compute_status(facts: list[EvidenceFacts]) -> StatusView:
             )
         elif all(f.type == TYPE_PROBE_ANSWER for f in independent):
             reason = "Подтверждено на основе Contextual Probe."
+        elif all(f.type == TYPE_MIRROR_TASK for f in independent):
+            reason = (
+                "Подтверждено зеркальной задачей — раскрывать материалы не потребовалось."
+            )
         else:
             reason = f"Есть независимое подтверждение: {_enumerate(independent)}."
         return StatusView(
