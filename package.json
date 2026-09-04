@@ -5,7 +5,10 @@
   "type": "module",
   "description": "PurpJob — инфраструктура профессионального доверия",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "dev:api": "cd backend && ../.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8001",
+    "init:db": "cd backend && ../.venv/Scripts/python.exe -m scripts.init_db",
+    "test:api": "cd backend && ../.venv/Scripts/python.exe -m pytest -q"
   },
   "devDependencies": {
     "vite": "^7.1.5"

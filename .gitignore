@@ -14,6 +14,7 @@ desktop.ini
 # Секреты и окружение
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 
@@ -25,3 +26,9 @@ temp/
 # Node
 node_modules/
 dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -17,6 +17,7 @@
     --text: #ece8f5;
     --muted: #9b93ae;
     --danger: #ff7a8a;
+    --ok: #6ee7a8;
   }
   * { box-sizing: border-box; }
   body {
@@ -57,7 +58,6 @@
   h1 { margin: 18px 0 6px; font-size: 26px; letter-spacing: -.01em; }
   .sub { margin: 0 0 26px; color: var(--muted); font-size: 14px; }
 
-  /* Переключатель вход / регистрация */
   .tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -110,6 +110,7 @@
     border-color: var(--purple);
     box-shadow: 0 0 0 3px rgba(160, 107, 255, .18);
   }
+  input:disabled { opacity: .55; }
   input[aria-invalid="true"] { border-color: var(--danger); }
   input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(255, 122, 138, .16); }
 
@@ -157,18 +158,79 @@
   .submit:hover:not(:disabled) { background: var(--purple-dim); }
   .submit:disabled { opacity: .6; cursor: default; }
 
-  .notice {
+  /* Общая ошибка формы: неверная пара почта/пароль, сеть, сервер */
+  .form-error {
     display: none;
-    margin-top: 18px;
-    padding: 12px 14px;
-    border: 1px solid var(--line-strong);
+    margin-top: 16px;
+    padding: 11px 14px;
+    border: 1px solid rgba(255, 122, 138, .35);
     border-radius: 10px;
+    background: rgba(255, 122, 138, .08);
+    font-size: 13.5px;
+    color: var(--danger);
+  }
+  .form-error.show { display: block; }
+
+  /* Экран после входа */
+  .signed .who {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 16px;
+    margin-bottom: 18px;
     background: var(--field);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+  }
+  .avatar {
+    flex: 0 0 auto;
+    width: 42px; height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .who-text { min-width: 0; }
+  .who-email {
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .who-since { font-size: 12.5px; color: var(--muted); }
+  .badge {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(110, 231, 168, .12);
+    color: var(--ok);
+    font-size: 12.5px;
+  }
+  .next {
+    margin: 0 0 20px;
     font-size: 13.5px;
     color: var(--muted);
   }
-  .notice.show { display: block; }
-  .notice b { color: var(--text); }
+  .logout {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .logout:hover:not(:disabled) { border-color: var(--purple); background: rgba(160, 107, 255, .08); }
+  .logout:disabled { opacity: .6; cursor: default; }
 
   .foot {
     margin: 26px 0 0;
@@ -186,69 +248,140 @@
   <main class="card">
     <div class="brand"><span class="dot"></span>PurpJob</div>
 
-    <h1 id="title">Вход</h1>
-    <p class="sub" id="subtitle">Профессиональный профиль, который накапливается, а не начинается заново.</p>
+    <!-- Экран входа и регистрации -->
+    <section id="view-auth" hidden>
+      <h1 id="title">Вход</h1>
+      <p class="sub" id="subtitle">Профессиональный профиль, который накапливается, а не начинается заново.</p>
 
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" id="tab-login" aria-selected="true" data-mode="login">Вход</button>
-      <button type="button" role="tab" id="tab-register" aria-selected="false" data-mode="register">Регистрация</button>
-    </div>
-
-    <form id="auth-form" novalidate>
-      <div class="field">
-        <label for="email">Почта</label>
-        <input type="email" id="email" name="email" autocomplete="email"
-               placeholder="name@example.com" aria-describedby="email-error">
-        <p class="error" id="email-error"></p>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-login" aria-selected="true" data-mode="login">Вход</button>
+        <button type="button" role="tab" id="tab-register" aria-selected="false" data-mode="register">Регистрация</button>
       </div>
 
-      <div class="field">
-        <label for="password">Пароль</label>
-        <div class="pw-wrap">
-          <input type="password" id="password" name="password" autocomplete="current-password"
-                 placeholder="Минимум 8 символов" aria-describedby="password-error password-hint">
-          <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Показать пароль">Показать</button>
+      <form id="auth-form" novalidate>
+        <div class="field">
+          <label for="email">Почта</label>
+          <input type="email" id="email" name="email" autocomplete="email"
+                 placeholder="name@example.com" aria-describedby="email-error">
+          <p class="error" id="email-error"></p>
         </div>
-        <p class="error" id="password-error"></p>
-        <p class="hint" id="password-hint" hidden>Не короче 8 символов.</p>
+
+        <div class="field">
+          <label for="password">Пароль</label>
+          <div class="pw-wrap">
+            <input type="password" id="password" name="password" autocomplete="current-password"
+                   placeholder="Минимум 8 символов" aria-describedby="password-error password-hint">
+            <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Показать пароль">Показать</button>
+          </div>
+          <p class="error" id="password-error"></p>
+          <p class="hint" id="password-hint" hidden>Не короче 8 символов.</p>
+        </div>
+
+        <button type="submit" class="submit" id="submit">Войти</button>
+      </form>
+
+      <p class="form-error" id="form-error" role="alert"></p>
+
+      <p class="foot">
+        Подтверждение почты не требуется — после регистрации вы сразу попадаете в профиль.
+      </p>
+    </section>
+
+    <!-- Экран после успешного входа -->
+    <section id="view-signed" class="signed" hidden>
+      <h1>Вы в профиле</h1>
+      <p class="sub">Пока здесь только учётная запись. Профиль начнёт наполняться со следующего модуля.</p>
+
+      <div class="who">
+        <div class="avatar" id="avatar"></div>
+        <div class="who-text">
+          <div class="who-email" id="who-email"></div>
+          <div class="who-since" id="who-since"></div>
+        </div>
       </div>
 
-      <button type="submit" class="submit" id="submit">Войти</button>
-    </form>
+      <span class="badge" id="badge">Вход выполнен</span>
 
-    <div class="notice" id="notice"></div>
+      <p class="next">
+        Дальше по роадмапу — импорт резюме и One-Click Enrichment: профиль заполняется
+        из ваших источников, а не пустой анкетой.
+      </p>
 
-    <p class="foot" id="foot">
-      Подтверждение почты не требуется — после регистрации вы сразу попадаете в профиль.
-    </p>
+      <button type="button" class="logout" id="logout">Выйти</button>
+    </section>
   </main>
 
 <script type="module">
-  const form     = document.getElementById('auth-form')
-  const emailEl  = document.getElementById('email')
-  const pwEl     = document.getElementById('password')
-  const submitEl = document.getElementById('submit')
-  const noticeEl = document.getElementById('notice')
-  const titleEl  = document.getElementById('title')
-  const subEl    = document.getElementById('subtitle')
-  const hintEl   = document.getElementById('password-hint')
-  const tabs     = [...document.querySelectorAll('[role="tab"]')]
+  const $ = id => document.getElementById(id)
+
+  const viewAuth   = $('view-auth')
+  const viewSigned = $('view-signed')
+  const form       = $('auth-form')
+  const emailEl    = $('email')
+  const pwEl       = $('password')
+  const submitEl   = $('submit')
+  const formError  = $('form-error')
+  const titleEl    = $('title')
+  const subEl      = $('subtitle')
+  const hintEl     = $('password-hint')
+  const logoutEl   = $('logout')
+  const tabs       = [...document.querySelectorAll('[role="tab"]')]
 
   let mode = 'login'
+  let busy = false
 
   const copy = {
     login: {
       title: 'Вход',
       subtitle: 'Профессиональный профиль, который накапливается, а не начинается заново.',
       submit: 'Войти',
+      pending: 'Входим…',
       autocomplete: 'current-password'
     },
     register: {
       title: 'Регистрация',
       subtitle: 'Один профиль вместо переписывания резюме под каждую вакансию.',
       submit: 'Создать профиль',
+      pending: 'Создаём профиль…',
       autocomplete: 'new-password'
     }
+  }
+
+  /* ---------- обращения к API ---------- */
+
+  async function api(path, options = {}) {
+    const response = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    })
+
+    let payload = null
+    try {
+      payload = response.status === 204 ? null : await response.json()
+    } catch {
+      payload = null
+    }
+
+    return { ok: response.ok, status: response.status, payload }
+  }
+
+  /* ---------- переключение экранов ---------- */
+
+  function showAuth() {
+    viewSigned.hidden = true
+    viewAuth.hidden = false
+  }
+
+  function showSigned(user) {
+    const since = new Date(user.created_at).toLocaleDateString('ru-RU', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    })
+    $('avatar').textContent = user.email.slice(0, 1)
+    $('who-email').textContent = user.email
+    $('who-since').textContent = `В PurpJob с ${since}`
+    viewAuth.hidden = true
+    viewSigned.hidden = false
   }
 
   function setMode(next) {
@@ -262,13 +395,13 @@
     document.title = `PurpJob — ${mode === 'login' ? 'вход' : 'регистрация'}`
     tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.mode === mode)))
     clearErrors()
-    noticeEl.classList.remove('show')
   }
 
-  tabs.forEach(tab => tab.addEventListener('click', () => setMode(tab.dataset.mode)))
+  tabs.forEach(tab => tab.addEventListener('click', () => { if (!busy) setMode(tab.dataset.mode) }))
 
-  // Показать / скрыть пароль
-  const pwToggle = document.getElementById('pw-toggle')
+  /* ---------- показать / скрыть пароль ---------- */
+
+  const pwToggle = $('pw-toggle')
   pwToggle.addEventListener('click', () => {
     const shown = pwEl.type === 'text'
     pwEl.type = shown ? 'password' : 'text'
@@ -277,25 +410,33 @@
     pwEl.focus()
   })
 
+  /* ---------- ошибки ---------- */
+
   function showError(input, message) {
-    const box = document.getElementById(`${input.id}-error`)
+    const box = $(`${input.id}-error`)
     box.textContent = message
     box.classList.add('show')
     input.setAttribute('aria-invalid', 'true')
   }
 
   function clearError(input) {
-    const box = document.getElementById(`${input.id}-error`)
+    const box = $(`${input.id}-error`)
     box.textContent = ''
     box.classList.remove('show')
     input.removeAttribute('aria-invalid')
   }
 
   function clearErrors() {
-    [emailEl, pwEl].forEach(clearError)
+    ;[emailEl, pwEl].forEach(clearError)
+    formError.classList.remove('show')
+    formError.textContent = ''
   }
 
-  // Ошибка убирается, как только человек начал править поле
+  function showFormError(message) {
+    formError.textContent = message
+    formError.classList.add('show')
+  }
+
   ;[emailEl, pwEl].forEach(el => el.addEventListener('input', () => clearError(el)))
 
   function validate() {
@@ -324,20 +465,88 @@
     return !firstBad
   }
 
-  form.addEventListener('submit', event => {
-    event.preventDefault()
-    noticeEl.classList.remove('show')
-    if (!validate()) return
+  function setBusy(state) {
+    busy = state
+    submitEl.disabled = state
+    emailEl.disabled = state
+    pwEl.disabled = state
+    submitEl.textContent = state ? copy[mode].pending : copy[mode].submit
+  }
 
-    // Бэкенда пока нет: форма проверена, но отправлять данные некуда.
-    // Здесь будет запрос к API регистрации/входа (модуль 1 роадмапа).
-    noticeEl.innerHTML = mode === 'register'
-      ? '<b>Форма заполнена верно.</b> Регистрация пока не подключена к серверу — это следующий шаг.'
-      : '<b>Форма заполнена верно.</b> Вход пока не подключён к серверу — это следующий шаг.'
-    noticeEl.classList.add('show')
+  /* ---------- отправка формы ---------- */
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault()
+    if (busy || !validate()) return
+
+    setBusy(true)
+    let result
+    try {
+      result = await api(`/api/auth/${mode}`, {
+        method: 'POST',
+        body: JSON.stringify({ email: emailEl.value.trim(), password: pwEl.value })
+      })
+    } catch {
+      setBusy(false)
+      showFormError('Сервер не отвечает. Проверьте, что бэкенд запущен.')
+      return
+    }
+    setBusy(false)
+
+    if (result.ok) {
+      pwEl.value = ''
+      showSigned(result.payload)
+      return
+    }
+
+    const detail = typeof result.payload?.detail === 'string' ? result.payload.detail : null
+
+    if (result.status === 409) {
+      showError(emailEl, detail ?? 'Такая почта уже занята.')
+      emailEl.focus()
+    } else if (result.status === 401) {
+      showFormError(detail ?? 'Неверная почта или пароль.')
+    } else if (result.status === 422) {
+      showError(emailEl, 'Проверьте адрес почты.')
+    } else {
+      showFormError(detail ?? 'Что-то пошло не так. Попробуйте ещё раз.')
+    }
   })
 
-  setMode('login')
+  /* ---------- выход ---------- */
+
+  logoutEl.addEventListener('click', async () => {
+    logoutEl.disabled = true
+    try {
+      await api('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Даже если запрос не дошёл, показываем форму: держать человека
+      // в интерфейсе, из которого он попросил выйти, хуже.
+    }
+    logoutEl.disabled = false
+    emailEl.value = ''
+    pwEl.value = ''
+    setMode('login')
+    showAuth()
+  })
+
+  /* ---------- старт: есть ли живая сессия ---------- */
+
+  async function init() {
+    setMode('login')
+    try {
+      const result = await api('/api/auth/me')
+      if (result.ok) {
+        showSigned(result.payload)
+        return
+      }
+    } catch {
+      // Бэкенд не поднят - просто показываем форму.
+    }
+    showAuth()
+  }
+
+  init()
 </script>
 </body>
 </html>
