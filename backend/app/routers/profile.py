@@ -15,6 +15,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.declines import (
+    TARGET_EVIDENCE,
+    TARGET_STATEMENT,
+    record_decline,
+    revoke_declines,
+)
 from app.enrichment import (
     DECLINED,
     PENDING,
@@ -132,7 +138,9 @@ def _serialize_statement(item: Statement, declined_ids: set[int]) -> dict:
 
 
 def _profile(db: Session, user: User) -> ProfileOut:
-    declines = _declines(db, user)
+    # Отказы по вопросам Contextual Probe (target_type "question") сюда не
+    # попадают: их место - история вопросов модуля 4, а не карта доказательств.
+    declines = [d for d in _declines(db, user) if d.target_type != "question"]
     declined_statement_ids = {d.target_id for d in declines if d.target_type == "statement"}
 
     return ProfileOut.model_validate(
@@ -452,13 +460,8 @@ def add_blind_witness(
         evidence.statements.append(statement)
         # Сам факт «материалы не раскрывались» фиксируется отдельно (FR4.2):
         # в профиле видно, что за компетенцией стоит закрытый проект.
-        db.add(
-            DeclineRecord(
-                user_id=user.id,
-                target_type="statement",
-                target_id=statement.id,
-                reason=data.note,
-            )
+        record_decline(
+            db, user, target_type=TARGET_STATEMENT, target_id=statement.id, reason=data.note
         )
 
     db.commit()
@@ -475,10 +478,8 @@ def decline_evidence(
     """Отказ раскрывать источник. Причину указывать не обязательно (FR4.3)."""
     evidence = _get_evidence(db, user, evidence_id)
     evidence.status = DECLINED
-    db.add(
-        DeclineRecord(
-            user_id=user.id, target_type="evidence", target_id=evidence.id, reason=data.reason
-        )
+    record_decline(
+        db, user, target_type=TARGET_EVIDENCE, target_id=evidence.id, reason=data.reason
     )
     db.commit()
     return _profile(db, user)
@@ -491,16 +492,7 @@ def restore_evidence(
     """Отказ обратим: кандидат может вернуться и раскрыть источник (FR4.7)."""
     evidence = _get_evidence(db, user, evidence_id)
     evidence.status = PENDING
-
-    for record in db.scalars(
-        select(DeclineRecord).where(
-            DeclineRecord.user_id == user.id,
-            DeclineRecord.target_type == "evidence",
-            DeclineRecord.target_id == evidence.id,
-        )
-    ):
-        db.delete(record)
-
+    revoke_declines(db, user, target_type=TARGET_EVIDENCE, target_id=evidence.id)
     db.commit()
     return _profile(db, user)
 
@@ -515,11 +507,7 @@ def remove_evidence(
 
     if evidence.statements:
         evidence.status = DECLINED
-        db.add(
-            DeclineRecord(
-                user_id=user.id, target_type="evidence", target_id=evidence.id, reason=None
-            )
-        )
+        record_decline(db, user, target_type=TARGET_EVIDENCE, target_id=evidence.id)
     else:
         if evidence.type == TYPE_FILE and evidence.file_ref:
             (Path(settings.upload_dir) / evidence.file_ref).unlink(missing_ok=True)
@@ -542,10 +530,8 @@ def decline_statement(
     способом - отказ ничего не отнимает (§3.3, FR4.3).
     """
     statement = _get_statement(db, user, statement_id)
-    db.add(
-        DeclineRecord(
-            user_id=user.id, target_type="statement", target_id=statement.id, reason=data.reason
-        )
+    record_decline(
+        db, user, target_type=TARGET_STATEMENT, target_id=statement.id, reason=data.reason
     )
     db.commit()
     return _profile(db, user)
@@ -556,15 +542,6 @@ def restore_statement(
     statement_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> ProfileOut:
     statement = _get_statement(db, user, statement_id)
-
-    for record in db.scalars(
-        select(DeclineRecord).where(
-            DeclineRecord.user_id == user.id,
-            DeclineRecord.target_type == "statement",
-            DeclineRecord.target_id == statement.id,
-        )
-    ):
-        db.delete(record)
-
+    revoke_declines(db, user, target_type=TARGET_STATEMENT, target_id=statement.id)
     db.commit()
     return _profile(db, user)

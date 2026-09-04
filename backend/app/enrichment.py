@@ -32,8 +32,17 @@ TYPE_LINK = "link"
 TYPE_FILE = "file"
 TYPE_FREE_TEXT = "free_text"
 TYPE_BLIND_WITNESS = "blind_witness_answer"
+# Ответ на вопрос Contextual Probe (модуль 4). Отдельный тип, а не
+# blind_witness_answer: происхождение доказательства должно быть видно.
+TYPE_PROBE_ANSWER = "probe_answer"
 
-EVIDENCE_TYPES = (TYPE_LINK, TYPE_FILE, TYPE_FREE_TEXT, TYPE_BLIND_WITNESS)
+EVIDENCE_TYPES = (
+    TYPE_LINK,
+    TYPE_FILE,
+    TYPE_FREE_TEXT,
+    TYPE_BLIND_WITNESS,
+    TYPE_PROBE_ANSWER,
+)
 SOURCE_CATEGORIES = ("github", "gitlab", "linkedin", "portfolio", "article", "video", "other")
 
 # Домены, по которым источник считается узнаваемым (FR1.2). Всё прочее - other.
@@ -65,6 +74,7 @@ _SOURCE_LABELS = {
     TYPE_FILE: "файл",
     TYPE_FREE_TEXT: "ваше описание",
     TYPE_BLIND_WITNESS: "ответ Слепого свидетеля",
+    TYPE_PROBE_ANSWER: "ответ на вопрос Contextual Probe",
 }
 
 
@@ -108,12 +118,13 @@ class StatusView:
 def is_independent(fact: EvidenceFacts) -> bool:
     """Независимое ли доказательство.
 
-    Файл и ответ Слепого свидетеля - да: первый существует отдельно от слов
-    кандидата, второй по FR4.5 приравнен к независимому источнику. Ссылка -
+    Файл, ответ Слепого свидетеля и ответ на вопрос Contextual Probe - да:
+    файл существует отдельно от слов кандидата, а два последних проверяют не
+    декларацию, а логику решений, и по FR4.5 приравнены к независимым. Ссылка -
     только на узнаваемую площадку: произвольный URL проверить нечем, поэтому
     он остаётся словами кандидата (в §3.4 это «unverified link»).
     """
-    if fact.type in (TYPE_FILE, TYPE_BLIND_WITNESS):
+    if fact.type in (TYPE_FILE, TYPE_BLIND_WITNESS, TYPE_PROBE_ANSWER):
         return True
     return fact.type == TYPE_LINK and fact.source_category not in (None, "other")
 
@@ -172,6 +183,8 @@ def compute_status(facts: list[EvidenceFacts]) -> StatusView:
                 "Подтверждено ответом Слепого свидетеля — раскрывать материалы "
                 "не потребовалось."
             )
+        elif all(f.type == TYPE_PROBE_ANSWER for f in independent):
+            reason = "Подтверждено на основе Contextual Probe."
         else:
             reason = f"Есть независимое подтверждение: {_enumerate(independent)}."
         return StatusView(

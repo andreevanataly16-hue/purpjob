@@ -169,6 +169,8 @@ class DeclineRecord(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
 
+    # evidence, statement или question: вопрос Contextual Probe, от которого
+    # кандидат отказался по NDA, - тот же самый механизм отказа (FR5.5 модуля 4).
     target_type: Mapped[str] = mapped_column(String(20), nullable=False)
     target_id: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -236,4 +238,143 @@ class VisibilityState(Base):
     mode: Mapped[str] = mapped_column(String(20), default="hidden", nullable=False)
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class ProbeQuestion(Base):
+    """Вопрос Contextual Probe (§4.2 FRD).
+
+    Статусы: pending, answered, skipped, declined_nda, flagged_bad. К набору из
+    спецификации добавлен `retired`: по FR1.3 вопрос по уже подтверждённой
+    компетенции снимается сам, и это надо отличать от пропуска кандидатом.
+    """
+
+    __tablename__ = "probe_questions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    competency_id: Mapped[str] = mapped_column(String(60), nullable=False)
+    target_type: Mapped[str] = mapped_column(String(20), default="white_spot", nullable=False)
+
+    # Артефакт, вокруг детали которого построен вопрос. None - запасной путь
+    # без привязки к материалам (FR2.4).
+    artifact_evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
+    )
+    template_id: Mapped[str] = mapped_column(String(60), nullable=False)
+    text_ru: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Объяснение «почему этот вопрос» - обязательная часть вопроса, а не
+    # необязательная приписка (FR4.1): без него вопрос показывать нельзя.
+    reason_ru: Mapped[str] = mapped_column(Text, nullable=False)
+
+    grounded: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Абстрактная переформулировка после отказа по NDA (FR5.2). Второй отказ от
+    # неё уже не переформулируется - это обычный пропуск.
+    nda_abstract: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Слова «ловушки на жаргон» и заготовка уточняющего вопроса хранятся вместе
+    # с вопросом: библиотека шаблонов со временем меняется, а разбирать ответ
+    # нужно по тем правилам, по которым вопрос был задан.
+    expected_terms: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    follow_up_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ProbeAnswer(Base):
+    """Ответ кандидата (§4.3 FRD) вместе с результатом маршрутизации сигналов."""
+
+    __tablename__ = "probe_answers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("probe_questions.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Только свободная форма и ничего кроме (US3, FR3.1). Поле существует
+    # именно для того, чтобы ограничение можно было проверить тестом, а не
+    # держать в голове как договорённость об интерфейсе.
+    format: Mapped[str] = mapped_column(String(20), default="free_text", nullable=False)
+
+    typed_duration_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    paste_attempts_blocked: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Заполняется только при включённом флаге (FR3.4). Молча - никогда.
+    keystroke_meta: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    understanding_signal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    new_competency_signal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Доказательство, в которое превратился ответ. Пусто, пока ответ не прошёл
+    # проверку на конкретность: общая фраза компетенцию не подтверждает.
+    evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
+    )
+
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ProbeFollowUp(Base):
+    """Уточняющий вопрос Semantic Depth (§4.4 FRD). Не больше одного на ответ."""
+
+    __tablename__ = "probe_follow_ups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    answer_id: Mapped[int] = mapped_column(
+        ForeignKey("probe_answers.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    trigger_reason: Mapped[str] = mapped_column(String(20), nullable=False)
+    text_ru: Mapped[str] = mapped_column(Text, nullable=False)
+    # Уточнение тоже не появляется из ниоткуда: видно, что это та же проверка
+    # той же компетенции (FR4.3).
+    reason_ru: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ProbeFeedback(Base):
+    """«Вопрос не подходит» (§4.5 FRD).
+
+    Собирается как сырые данные для калибровки шаблонов: механика поощрений за
+    найденные плохие вопросы - процесс, а не код (Гл. 13).
+    """
+
+    __tablename__ = "probe_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("probe_questions.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    template_id: Mapped[str] = mapped_column(String(60), nullable=False)
+
+    reason: Mapped[str] = mapped_column(String(40), nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Загрузка скриншота к жалобе не реализована - поле оставлено под неё.
+    screenshot_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
