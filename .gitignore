@@ -21,3 +21,7 @@ desktop.ini
 *.log
 tmp/
 temp/
+
+# Node
+node_modules/
+dist/
