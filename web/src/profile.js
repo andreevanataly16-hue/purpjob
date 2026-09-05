@@ -12,6 +12,10 @@ import { PROF_EXTRAS_SKELETON, PROF_SKELETON, initProf, renderProf, resetProf } 
 import { PROBE_SKELETON, initProbe, renderProbe, resetProbe } from './probe.js'
 import { NDA_SKELETON, initNda, renderNda, resetNda } from './nda.js'
 import { TRUST_SKELETON, initTrust, renderTrust, resetTrust } from './trust.js'
+import {
+  DISPUTES_SKELETON, WHY_PANEL_SKELETON, initXai, renderXai, resetXai
+} from './xai.js'
+import { MODERATION_SKELETON, initModeration, renderModeration, resetModeration } from './moderation.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -94,6 +98,7 @@ function busy(button, state, pendingText) {
 /* ---------- разметка экрана ---------- */
 
 const SKELETON = `
+  ${WHY_PANEL_SKELETON}
   <div class="counters" id="counters"></div>
 
   ${PROF_SKELETON}
@@ -105,6 +110,8 @@ const SKELETON = `
   ${PROBE_SKELETON}
 
   ${NDA_SKELETON}
+
+  ${DISPUTES_SKELETON}
 
   <section class="block">
     <h2>Расскажите о проекте</h2>
@@ -191,6 +198,8 @@ const SKELETON = `
     </div>
     <p class="msg" id="map-msg"></p>
   </section>
+
+  ${MODERATION_SKELETON}
 `
 
 /* ---------- отрисовка данных ---------- */
@@ -403,6 +412,8 @@ function render(state) {
   renderProbe(state)
   renderNda(state)
   renderTrust(state)
+  renderXai(state)
+  renderModeration(state)
 }
 
 /* ---------- действия ---------- */
@@ -684,6 +695,8 @@ export async function initProfile() {
     initProbe({ getState, root })
     initNda({ getState, root })
     initTrust({ getState, root })
+    initXai({ getState, root })
+    initModeration({ getState, root })
   }
 
   document.querySelector('.card').classList.add('wide')
@@ -696,6 +709,8 @@ export function resetProfile() {
   resetProbe()
   resetNda()
   resetTrust()
+  resetXai()
+  resetModeration()
   ui.parsed = null
   ui.rawInputId = null
   ui.target = null

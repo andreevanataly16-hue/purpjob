@@ -28,6 +28,10 @@ class ComponentOut(BaseModel):
     contributing_evidence_ids: list[str]
     notes_ru: list[str]
 
+    # Модуль 7: точка входа в объяснение и след ручной правки.
+    explanation_id: str = ""
+    moderator_note_ru: str | None = None
+
 
 class NextActionOut(BaseModel):
     """Следующее лучшее действие: конкретное, с адресом, а не «улучшите профиль»."""
@@ -63,6 +67,22 @@ class ContradictionOut(BaseModel):
     created_at: datetime
 
 
+class TrustTraceOut(BaseModel):
+    """След ручной правки балла (FR5.4 модуля 7).
+
+    Версия снимка растёт от каждой такой правки, и от неё можно дойти до
+    записи журнала, которая её вызвала: «балл улучшился» без адреса - ровно
+    тот чёрный ящик, который модуль 7 и закрывает."""
+
+    component_id: str
+    previous_value: str
+    new_value: str
+    rationale_ru: str
+    dispute_case_id: str
+    history_entry_id: str | None
+    applied_at: datetime
+
+
 class TrustOut(BaseModel):
     overall_score: int = Field(ge=0, le=100)
     computed_at: datetime
@@ -72,3 +92,4 @@ class TrustOut(BaseModel):
     next_actions: list[NextActionOut]
     findings: list[FindingOut]
     contradictions: list[ContradictionOut]
+    moderation_trace: list[TrustTraceOut] = Field(default_factory=list)

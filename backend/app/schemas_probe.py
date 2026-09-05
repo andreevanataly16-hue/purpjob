@@ -52,6 +52,9 @@ class QuestionOut(BaseModel):
     status: str
     status_ru: str
     created_at: datetime
+    # Модуль 7: та же точка «Почему такой вывод?», что у баллов - вопрос тоже
+    # решение системы о кандидате, и с ним можно не согласиться.
+    explanation_id: str = ""
 
 
 class FollowUpOut(BaseModel):

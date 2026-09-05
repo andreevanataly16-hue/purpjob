@@ -7,6 +7,7 @@
 import './probe.css'
 import { api } from './api.js'
 import { mutateProbe } from './store.js'
+import { whyButton } from './xai.js'
 
 const TRIGGER_RU = {
   too_generic: 'нужна конкретика',
@@ -56,7 +57,7 @@ function questionCard(question) {
     <article class="question">
       <p class="q-why">${escape(question.reason_ru)}</p>
       <p class="q-text">${escape(question.text_ru)}</p>
-      <div class="q-meta">${origin}</div>
+      <div class="q-meta">${origin} ${whyButton(question.explanation_id)}</div>
 
       <textarea class="probe-input" id="probe-answer"
         placeholder="Своими словами: что решали, почему именно так, что в итоге получилось"></textarea>
@@ -182,6 +183,7 @@ function renderHistory(state) {
           <p class="q-text">${escape(item.text_ru)}</p>
           <div class="q-meta">
             <span class="chip grey">${escape(item.status_ru)}</span>
+            ${whyButton(item.explanation_id)}
             ${item.understanding_signal ? '<span class="chip">понимание подтверждено</span>' : ''}
             ${item.new_competency_signal ? '<span class="chip">открыл новую компетенцию</span>' : ''}
           </div>

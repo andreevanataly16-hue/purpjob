@@ -6,6 +6,7 @@
 
 import './trust.css'
 import { mutateTrust } from './store.js'
+import { whyButton } from './xai.js'
 
 const PATHS = {
   delete_artifact: 'Удалить артефакт',
@@ -45,6 +46,10 @@ function componentCard(item) {
       <div class="trust-bar"><i style="width:${item.score}%"></i></div>
       <p class="why">${escape(item.explanation_ru)}</p>
       ${item.notes_ru.map(note => `<p class="note">${escape(note)}</p>`).join('')}
+      ${item.moderator_note_ru
+        ? `<p class="moderated">${escape(item.moderator_note_ru)}</p>`
+        : ''}
+      ${whyButton(item.explanation_id)}
       ${item.contributing_evidence_ids.length
         ? `<p class="trust-sources">Считались доказательства: ${
             item.contributing_evidence_ids.map(id => escape(id)).join(', ')

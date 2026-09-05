@@ -51,6 +51,7 @@ from app.reference import ReferenceCompetency, get_profile
 from app.routers.auth import current_user
 from app.routers.nda import open_case
 from app.routers.prof import _statement_views
+from app.xai import probe_explanation_id
 from app.routers.profile import _ensure_statement, parse_id, public_id
 from app.schemas_probe import (
     AnswerIn,
@@ -283,6 +284,7 @@ def _question_out(question: ProbeQuestion) -> dict:
         "status": question.status,
         "status_ru": STATUS_RU.get(question.status, question.status),
         "created_at": question.created_at,
+        "explanation_id": probe_explanation_id(public_id("q", question.id)),
     }
 
 

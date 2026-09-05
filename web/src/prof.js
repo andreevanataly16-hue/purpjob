@@ -6,6 +6,7 @@
 
 import './prof.css'
 import { mutate, mutateProf } from './store.js'
+import { whyButton } from './xai.js'
 
 const STATUS_RU = {
   not_started: { ru: 'Нет подтверждений', term: 'Not started' },
@@ -205,6 +206,10 @@ function competencyRow(item) {
           ${item.heuristic_applied ? '<span class="chip nda">эвристика</span>' : ''}
         </div>
         <p class="why">${escape(item.reason)}</p>
+        ${item.moderator_note_ru
+          ? `<p class="moderated">${escape(item.moderator_note_ru)}</p>`
+          : ''}
+        ${whyButton(item.explanation_id)}
       </div>
       <div class="weight">
         вес ${Math.round(item.weight * 100)}%<br>нужно ${DEPTH_RU[item.required_depth]}

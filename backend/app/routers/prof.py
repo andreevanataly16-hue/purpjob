@@ -12,14 +12,22 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import overrides
 from app.db import get_db
 from app.enrichment import DECLINED, TYPE_FILE, TYPE_LINK, EvidenceFacts, compute_status
 from app.models import ProfRole, Statement, User, VisibilityState
-from app.prof import StatementView, compute_snapshot
+from app.prof import (
+    DEPTH_REFERENCE,
+    STATUS_SCORE,
+    WHITE_SPOT_STATUSES,
+    StatementView,
+    compute_snapshot,
+)
 from app.reference import LEVELS, SEGMENT, get_profile
 from app.routers.auth import current_user
 from app.routers.profile import public_id
 from app.schemas_prof import LevelIn, ProfOut, VisibilityIn
+from app.xai import prof_explanation_id
 
 router = APIRouter(prefix="/api/prof", tags=["prof"])
 
@@ -63,6 +71,51 @@ def _statement_views(db: Session, user: User) -> list[StatementView]:
     return views
 
 
+def _apply_moderation(snapshot: dict, applied: list) -> dict:
+    """Накладывает ручные правки модератора на посчитанный снимок (модуль 7).
+
+    Слоем поверх расчёта, а не правкой внутри модуля 3: индекс пересчитывается
+    на каждый запрос, и записанный внутрь статус пережил бы ровно один ответ.
+    Заодно это делает невозможным изменить статус в обход журнала споров.
+    """
+    level = snapshot["level"]
+
+    for component in snapshot["components"]:
+        component["explanation_id"] = prof_explanation_id(level, component["competency_id"])
+
+        override = overrides.latest(
+            applied, overrides.TARGET_PROF_STATUS, component["competency_id"]
+        )
+        if override is None or override.new_value not in STATUS_SCORE:
+            continue
+
+        component["status"] = override.new_value
+        component["moderator_note_ru"] = overrides.note_ru(override)
+        component["score_contribution"] = round(
+            STATUS_SCORE[override.new_value] * component["weight"], 6
+        )
+
+    # Всё, что зависит от статуса, пересобирается после правки: иначе индекс,
+    # белые пятна и радар разъедутся с тем, что написано у компетенции.
+    snapshot["overall_score"] = round(
+        sum(item["score_contribution"] for item in snapshot["components"]) * 100
+    )
+    snapshot["white_spots"] = [
+        item["competency_id"]
+        for item in sorted(
+            (c for c in snapshot["components"] if c["status"] in WHITE_SPOT_STATUSES),
+            key=lambda item: (-item["weight"], item["name_ru"]),
+        )
+    ]
+    by_id = {item["competency_id"]: item for item in snapshot["components"]}
+    for point in snapshot["radar_points"]:
+        source = by_id[point["competency_id"]]
+        point["candidate_value"] = STATUS_SCORE[source["status"]]
+        point["reference_value"] = DEPTH_REFERENCE[source["required_depth"]]
+
+    return snapshot
+
+
 def _visibility(db: Session, user: User) -> VisibilityState:
     state = db.get(VisibilityState, user.id)
     if state is None:
@@ -80,13 +133,17 @@ def _payload(db: Session, user: User) -> ProfOut:
     )
     views = _statement_views(db, user)
     state = _visibility(db, user)
+    applied = overrides.for_user(db, user)
 
     return ProfOut.model_validate(
         {
             "segment": SEGMENT,
             "available_levels": list(LEVELS),
             "max_roles": MAX_ROLES,
-            "snapshots": [compute_snapshot(get_profile(role.level), views) for role in roles],
+            "snapshots": [
+                _apply_moderation(compute_snapshot(get_profile(role.level), views), applied)
+                for role in roles
+            ],
             "visibility": {"mode": state.mode, "changed_at": state.changed_at},
         }
     )

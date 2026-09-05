@@ -37,6 +37,11 @@ class ComponentOut(BaseModel):
     suggested_skill_key: str
     suggested_skill_ru: str
 
+    # Модуль 7: единая точка «Почему такой вывод?» рядом с каждым статусом
+    # (FR1.3) и след ручной правки, если она была (FR-Gov.2).
+    explanation_id: str = ""
+    moderator_note_ru: str | None = None
+
 
 class RadarPointOut(BaseModel):
     competency_id: str

@@ -1,0 +1,92 @@
+/* Очередь модератора: внутренний экран, а не витрина для кандидата. */
+
+.mod-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mod-warning {
+  margin: 16px 0 14px;
+  padding: 12px 15px;
+  border: 1px solid rgba(255, 122, 122, .45);
+  border-radius: 10px;
+  background: rgba(255, 122, 122, .08);
+  font-size: 12.5px;
+  color: #ff9c9c;
+}
+
+.mod-stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.mod-case {
+  padding: 16px 17px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--field);
+}
+.mod-case-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.mod-status { font-size: 12.5px; font-weight: 600; color: #ffc47a; }
+.mod-who { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+.mod-subject { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.mod-conclusion { margin: 0; font-size: 14px; line-height: 1.5; }
+.mod-said { margin: 10px 0 0; font-size: 13px; }
+.mod-said.muted { color: var(--muted); }
+
+.mod-h { margin: 16px 0 8px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.mod-evidence { margin: 0; padding-left: 18px; }
+.mod-ev { margin-bottom: 7px; font-size: 12.5px; }
+.mod-ev.broken { color: #ff9c9c; }
+.mod-ev.muted { color: var(--muted); }
+.mod-ev p { margin: 4px 0 0; color: var(--muted); }
+
+.mod-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
+
+.mod-form {
+  margin-top: 14px;
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+.mod-form label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.mod-form label:first-child { margin-top: 0; }
+.mod-form select,
+.mod-form input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--field);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.mod-form textarea { min-height: 80px; }
+.mod-form .action { margin-top: 12px; }
+
+.mod-history { margin-top: 14px; }
+.mod-history summary { font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.mod-history ul { margin: 10px 0 0; padding-left: 18px; }
+.mod-history li { margin-bottom: 9px; font-size: 12.5px; }
+.mod-history p { margin: 4px 0 0; color: var(--muted); }

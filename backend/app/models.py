@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy import event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -574,3 +575,163 @@ class ContradictionCase(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class DisputeCase(Base):
+    """Спор кандидата с выводом системы (§4.2 модуля 7).
+
+    Появление спора ничего не меняет в самом выводе: статус компетенции и балл
+    Trust остаются ровно теми же, пока модератор не решит иначе (FR3.3). Спор -
+    это запрос на проверку, а не признание и не автоматическое понижение.
+
+    Текст объяснения и список доказательств копируются сюда на момент спора:
+    PROF и Trust пересчитываются на каждый запрос, и без копии модератор увидел
+    бы уже другой вывод, а не тот, который оспорили (FR4.2).
+    """
+
+    __tablename__ = "dispute_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    explanation_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    subject_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    # Снимок оспоренного вывода - именно то, что видел кандидат.
+    explanation_conclusion_ru: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    explanation_evidence_refs: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    origin: Mapped[str] = mapped_column(String(30), default="candidate_escalation", nullable=False)
+
+    # Обоснование спора необязательно: «мне кажется, это неверно» - достаточная
+    # причина, требовать от кандидата собирать дело мы не будем (FR3.2).
+    candidate_statement: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20), default="queued", nullable=False)
+    assigned_moderator: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    # Конкретный вопрос модератора, когда нужны подробности (FR4.3b).
+    info_request_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class DisputeHistoryEntry(Base):
+    """Запись журнала спора (§4.3). Только добавление, никогда правка.
+
+    Это не стилистическое пожелание, а механизм: если записи можно было бы
+    менять, журнал перестал бы годиться на то единственное, ради чего он есть -
+    восстановить, почему профиль или Trust изменились (US5). Запрет на UPDATE и
+    DELETE стоит ниже обработчиками SQLAlchemy, а не только на словах (FR5.1).
+    """
+
+    __tablename__ = "dispute_history_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dispute_case_id: Mapped[int] = mapped_column(
+        ForeignKey("dispute_cases.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    event_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    actor: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    before_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    after_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    note_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ModeratorOverride(Base):
+    """Ручное исправление вывода системы (§4.4).
+
+    `rationale_ru` обязателен. Человек без объяснения - ровно та же проблема
+    неоспоримого судьи, ради которой существует весь модуль, только судья
+    сменился с алгоритма на сотрудника (FR4.3).
+
+    Правка всегда адресная: одно поле одного объекта. Общего «поправить профиль»
+    здесь нет и быть не должно (FR4.4).
+    """
+
+    __tablename__ = "moderator_overrides"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dispute_case_id: Mapped[int] = mapped_column(
+        ForeignKey("dispute_cases.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    target_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    target_id: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    previous_value: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    new_value: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    rationale_ru: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Запись журнала, породившая эту правку. Хранится ссылкой, а не пересчётом
+    # по совпадению полей: FR5.4 требует прослеживаемости от изменённого балла
+    # обратно к строке журнала, а не «где-то там оно записано».
+    history_entry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dispute_history_entries.id", ondelete="SET NULL"), nullable=True
+    )
+
+    applied_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class AnomalyFlag(Base):
+    """Сигнал детектора аномалий (§4.5). Производителя в этой фазе нет.
+
+    Форма принята, чтобы очередь модератора умела работать со всеми тремя
+    источниками сразу, а не переделывалась потом. Но детекторов (стилометрия
+    против Raw Input, переключение вкладок) в продукте нет: они вынесены из
+    объёма модуля (§2.2). Ни один рабочий путь такие записи не создаёт - это
+    проверяется тестом, а не оговоркой в документации.
+    """
+
+    __tablename__ = "anomaly_flags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    flag_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    subject_evidence_or_answer_id: Mapped[str] = mapped_column(String(60), nullable=False)
+
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+# --- журнал только на добавление (FR5.1) ---------------------------------
+#
+# Запрет держится на уровне кода, а не договорённости: любая попытка изменить
+# или удалить запись журнала падает с ошибкой. Исправление ошибочной записи -
+# это новая запись, а не правка старой.
+
+
+class AppendOnlyViolation(RuntimeError):
+    """Кто-то попытался изменить или удалить запись журнала споров."""
+
+
+@event.listens_for(DisputeHistoryEntry, "before_update", propagate=True)
+def _forbid_history_update(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation(
+        "Журнал спора только пополняется: исправление - это новая запись, а не правка старой."
+    )
+
+
+@event.listens_for(DisputeHistoryEntry, "before_delete", propagate=True)
+def _forbid_history_delete(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation("Записи журнала спора не удаляются.")

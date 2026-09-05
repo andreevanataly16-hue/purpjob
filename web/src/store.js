@@ -17,10 +17,12 @@ let prof = null
 let probe = null
 let nda = null
 let trust = null
+let disputes = null
+let moderation = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe, nda, trust }
+  return { ...profile, prof, probe, nda, trust, disputes, moderation }
 }
 
 export function getState() {
@@ -44,6 +46,8 @@ export function clearProfile() {
   probe = null
   nda = null
   trust = null
+  disputes = null
+  moderation = null
   publish()
 }
 
@@ -83,6 +87,27 @@ async function refreshTrust() {
   if (result.ok && isTrust(result.payload)) trust = result.payload
 }
 
+function isDisputes(payload) {
+  return Boolean(payload && payload.dispute_label_ru && Array.isArray(payload.cases))
+}
+
+function isQueue(payload) {
+  return Boolean(payload && payload.not_production_safe_ru && Array.isArray(payload.cases))
+}
+
+/* Споры и очередь модератора: модуль 7 ничего не считает сам, но правка
+   модератора меняет и индекс, и Trust - поэтому они всегда перечитываются
+   вместе с остальным, а не живут отдельной жизнью. */
+async function refreshDisputes() {
+  const result = await api('/api/disputes')
+  if (result.ok && isDisputes(result.payload)) disputes = result.payload
+}
+
+async function refreshModeration() {
+  const result = await api('/api/moderation/queue')
+  if (result.ok && isQueue(result.payload)) moderation = result.payload
+}
+
 async function refreshProf() {
   const result = await api('/api/prof')
   if (result.ok && isProf(result.payload)) prof = result.payload
@@ -94,7 +119,9 @@ export async function loadProfile() {
     refreshProf(),
     refreshProbe(),
     refreshNda(),
-    refreshTrust()
+    refreshTrust(),
+    refreshDisputes(),
+    refreshModeration()
   ])
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
@@ -106,7 +133,10 @@ export async function mutate(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProfile(result.payload)) {
     profile = result.payload
-    await Promise.all([refreshProf(), refreshProbe(), refreshNda(), refreshTrust()])
+    await Promise.all([
+      refreshProf(), refreshProbe(), refreshNda(), refreshTrust(),
+      refreshDisputes(), refreshModeration()
+    ])
     publish()
   }
   return result
@@ -120,7 +150,9 @@ export async function mutateProbe(path, options = {}) {
     probe = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await Promise.all([refreshProf(), refreshNda(), refreshTrust()])
+    await Promise.all([
+      refreshProf(), refreshNda(), refreshTrust(), refreshDisputes(), refreshModeration()
+    ])
     publish()
   }
   return result
@@ -133,7 +165,9 @@ export async function mutateNda(path, options = {}) {
     nda = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await Promise.all([refreshProf(), refreshProbe(), refreshTrust()])
+    await Promise.all([
+      refreshProf(), refreshProbe(), refreshTrust(), refreshDisputes(), refreshModeration()
+    ])
     publish()
   }
   return result
@@ -146,7 +180,33 @@ export async function mutateTrust(path, options = {}) {
     trust = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await Promise.all([refreshProf(), refreshProbe(), refreshNda()])
+    await Promise.all([
+      refreshProf(), refreshProbe(), refreshNda(), refreshDisputes(), refreshModeration()
+    ])
+    publish()
+  }
+  return result
+}
+
+/* Спор кандидата: ответ - список споров. Балл при этом не меняется, но точка
+   входа рядом с выводом должна сразу показать, что спор открыт. */
+export async function mutateDisputes(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isDisputes(result.payload)) {
+    disputes = result.payload
+    await refreshModeration()
+    publish()
+  }
+  return result
+}
+
+/* Решение модератора: единственное, что вообще может изменить балл помимо
+   расчёта, - поэтому перечитывается всё. */
+export async function mutateModeration(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isQueue(result.payload)) {
+    moderation = result.payload
+    await Promise.all([refreshProf(), refreshTrust(), refreshProbe(), refreshDisputes()])
     publish()
   }
   return result

@@ -9,12 +9,14 @@
 сам и принёс. Ни одно действие кандидата не может уменьшить балл.
 """
 
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import overrides
 from app.db import get_db
 from app.enrichment import (
     DECLINED,
@@ -39,6 +41,7 @@ from app.routers.auth import current_user
 from app.routers.prof import _statement_views
 from app.routers.profile import parse_id, public_id
 from app.schemas_trust import FindingResponseIn, ResolutionIn, TrustOut
+from app.xai import trust_explanation_id
 from app.trust import (
     AUTHENTICITY,
     COMPONENT_RU,
@@ -274,6 +277,50 @@ def _next_actions(
     return sorted(actions, key=lambda item: -item["weight"])
 
 
+def _apply_moderation(
+    components: list[ComponentScore], applied: list
+) -> tuple[list[ComponentScore], dict[str, object], list[dict]]:
+    """Ручные правки модератора поверх посчитанных компонентов (модуль 7).
+
+    Единственный путь, которым балл Trust вообще может измениться помимо
+    расчёта, - и он оставляет запись с обязательной причиной. Правило модуля 6
+    «действие кандидата не уменьшает балл» этим не нарушается: здесь решает
+    человек, письменно и под запись (см. `app/overrides.py`).
+    """
+    result: list[ComponentScore] = []
+    notes: dict[str, object] = {}
+    trace: list[dict] = []
+
+    for component in components:
+        override = overrides.latest(
+            applied, overrides.TARGET_TRUST_COMPONENT, component.component_id
+        )
+        if override is None or not override.new_value.isdigit():
+            result.append(component)
+            continue
+
+        new_score = max(0, min(100, int(override.new_value)))
+        result.append(replace(component, score=new_score))
+        notes[component.component_id] = overrides.note_ru(override)
+        trace.append(
+            {
+                "component_id": component.component_id,
+                "previous_value": override.previous_value,
+                "new_value": override.new_value,
+                "rationale_ru": override.rationale_ru,
+                "dispute_case_id": public_id("dc", override.dispute_case_id),
+                "history_entry_id": (
+                    public_id("dh", override.history_entry_id)
+                    if override.history_entry_id
+                    else None
+                ),
+                "applied_at": override.applied_at,
+            }
+        )
+
+    return result, notes, trace
+
+
 def _state(db: Session, user: User) -> TrustOut:
     _refresh_contradictions(db, user)
 
@@ -301,6 +348,8 @@ def _state(db: Session, user: User) -> TrustOut:
         understanding(probes, nda_confirmations),
         consistency(evidence, len(open_cases), len(resolved_cases), len(findings)),
     ]
+    applied = overrides.for_user(db, user)
+    components, moderator_notes, moderation_trace = _apply_moderation(components, applied)
 
     statements = {
         public_id("stmt", item.id): item.skill_name_ru
@@ -311,9 +360,10 @@ def _state(db: Session, user: User) -> TrustOut:
         {
             "overall_score": overall(components),
             "computed_at": datetime.now(timezone.utc),
-            # Версия растёт с каждым пересчётом: она понадобится, когда появится
-            # снимок профиля на момент отклика (пока её никто не читает).
-            "version": 1 + len(probes) + len(evidence) + len(cases),
+            # Версия растёт с каждым пересчётом и с каждой ручной правкой
+            # (FR5.4 модуля 7): по `moderation_trace` от изменившегося балла
+            # можно дойти до записи журнала, которая его изменила.
+            "version": 1 + len(probes) + len(evidence) + len(cases) + len(applied),
             "legend_ru": LEGEND_RU,
             "components": [
                 {
@@ -323,9 +373,12 @@ def _state(db: Session, user: User) -> TrustOut:
                     "explanation_ru": item.explanation_ru,
                     "contributing_evidence_ids": item.contributing_evidence_ids,
                     "notes_ru": item.notes_ru,
+                    "explanation_id": trust_explanation_id(item.component_id),
+                    "moderator_note_ru": moderator_notes.get(item.component_id),
                 }
                 for item in components
             ],
+            "moderation_trace": moderation_trace,
             "next_actions": _next_actions(db, user, components, cases, findings),
             "findings": findings,
             "contradictions": [
