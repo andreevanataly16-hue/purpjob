@@ -1,0 +1,292 @@
+{
+  "note": "Синтетические профили кандидатов для рекрутерской стороны (модуль 12). Настоящих зарегистрированных кандидатов на этой фазе нет, поэтому набор рукописный — так же, как эталоны модуля 3, сценарии модуля 5 и вакансии модуля 10. Данные описаны в тех же формах, что и у настоящего кандидата: статусы компетенций и баллы здесь не записаны, они считаются теми же движками модулей 2/3/6, что и для живого профиля. Отклонённых находок (Case 1 модуля 6) в наборе нет и быть не может: по правилу модуля 6 от них не остаётся следа нигде, включая рекрутерский экран.",
+  "candidates": [
+    {
+      "id": "cand_001",
+      "display_name": "Мария К.",
+      "photo_label": "МК",
+      "visibility_state": { "mode": "visible" },
+      "consent_for_recruiter_view": true,
+      "levels": ["Middle"],
+      "statements": [
+        {
+          "skill_name": "Python",
+          "skill_name_ru": "Python",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "article", "status": "confirmed" },
+            { "type": "free_text", "source_category": null, "status": "pending" }
+          ]
+        },
+        {
+          "skill_name": "REST API design",
+          "skill_name_ru": "Проектирование REST API",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "probe_answer", "source_category": null, "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "PostgreSQL",
+          "skill_name_ru": "PostgreSQL",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "free_text", "source_category": null, "status": "pending" }
+          ]
+        },
+        {
+          "skill_name": "Testing",
+          "skill_name_ru": "Тестирование",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "file", "source_category": null, "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Asynchronous programming",
+          "skill_name_ru": "Асинхронное программирование",
+          "evidence": [{ "type": "free_text", "source_category": null, "status": "pending" }]
+        }
+      ],
+      "probe_answers": [
+        {
+          "competency_id": "rest_api_design",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": false,
+          "resolved_after_follow_up": false
+        },
+        {
+          "competency_id": "testing",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": true,
+          "resolved_after_follow_up": true
+        }
+      ],
+      "nda_confirmations": []
+    },
+    {
+      "id": "cand_002",
+      "display_name": "Дмитрий Л.",
+      "photo_label": "ДЛ",
+      "visibility_state": { "mode": "visible" },
+      "consent_for_recruiter_view": false,
+      "levels": ["Middle", "Senior"],
+      "statements": [
+        {
+          "skill_name": "Go",
+          "skill_name_ru": "Go",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "conference", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "High load systems",
+          "skill_name_ru": "Высокие нагрузки",
+          "evidence": [
+            { "type": "mirror_task_solution", "source_category": null, "status": "confirmed" },
+            { "type": "link", "source_category": "conference", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Distributed systems",
+          "skill_name_ru": "Распределённые системы",
+          "evidence": [
+            { "type": "blind_witness_answer", "source_category": null, "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Message queues",
+          "skill_name_ru": "Очереди сообщений",
+          "evidence": [{ "type": "link", "source_category": "github", "status": "confirmed" }]
+        },
+        {
+          "skill_name": "Observability",
+          "skill_name_ru": "Мониторинг и наблюдаемость",
+          "evidence": [{ "type": "free_text", "source_category": null, "status": "pending" }]
+        }
+      ],
+      "probe_answers": [
+        {
+          "competency_id": "high_load",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": false,
+          "resolved_after_follow_up": false
+        },
+        {
+          "competency_id": "distributed_systems",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 1,
+          "had_follow_up": false,
+          "resolved_after_follow_up": false
+        }
+      ],
+      "nda_confirmations": [
+        { "type": "blind_witness_answer", "source_category": null, "status": "confirmed" },
+        { "type": "mirror_task_solution", "source_category": null, "status": "confirmed" }
+      ]
+    },
+    {
+      "id": "cand_003",
+      "display_name": "Анна С.",
+      "photo_label": "АС",
+      "visibility_state": { "mode": "visible" },
+      "consent_for_recruiter_view": true,
+      "levels": ["Middle"],
+      "statements": [
+        {
+          "skill_name": "Python",
+          "skill_name_ru": "Python",
+          "evidence": [{ "type": "link", "source_category": "github", "status": "confirmed" }]
+        },
+        {
+          "skill_name": "Docker",
+          "skill_name_ru": "Docker",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "file", "source_category": null, "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Kubernetes",
+          "skill_name_ru": "Kubernetes",
+          "evidence": [
+            { "type": "link", "source_category": "article", "status": "confirmed" },
+            { "type": "link", "source_category": "github", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "CI/CD",
+          "skill_name_ru": "CI/CD",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "probe_answer", "source_category": null, "status": "confirmed" }
+          ]
+        }
+      ],
+      "probe_answers": [
+        {
+          "competency_id": "ci_cd",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": false,
+          "resolved_after_follow_up": false
+        }
+      ],
+      "nda_confirmations": []
+    },
+    {
+      "id": "cand_004",
+      "display_name": "Игорь В.",
+      "photo_label": "ИВ",
+      "visibility_state": { "mode": "hidden" },
+      "consent_for_recruiter_view": true,
+      "levels": ["Senior"],
+      "statements": [
+        {
+          "skill_name": "Go",
+          "skill_name_ru": "Go",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "conference", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "High load systems",
+          "skill_name_ru": "Высокие нагрузки",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "article", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "System from scratch",
+          "skill_name_ru": "Система с нуля",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "file", "source_category": null, "status": "confirmed" }
+          ]
+        }
+      ],
+      "probe_answers": [],
+      "nda_confirmations": []
+    },
+    {
+      "id": "cand_005",
+      "display_name": "Ольга П.",
+      "photo_label": "ОП",
+      "visibility_state": { "mode": "visible" },
+      "consent_for_recruiter_view": true,
+      "levels": ["Senior"],
+      "statements": [
+        {
+          "skill_name": "Python",
+          "skill_name_ru": "Python",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "article", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "High load systems",
+          "skill_name_ru": "Высокие нагрузки",
+          "evidence": [
+            { "type": "link", "source_category": "conference", "status": "confirmed" },
+            { "type": "probe_answer", "source_category": null, "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Message queues",
+          "skill_name_ru": "Очереди сообщений",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "article", "status": "confirmed" }
+          ]
+        },
+        {
+          "skill_name": "Performance optimization",
+          "skill_name_ru": "Оптимизация производительности",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "free_text", "source_category": null, "status": "pending" }
+          ]
+        },
+        {
+          "skill_name": "ClickHouse",
+          "skill_name_ru": "ClickHouse",
+          "evidence": [
+            { "type": "link", "source_category": "github", "status": "confirmed" },
+            { "type": "link", "source_category": "conference", "status": "confirmed" }
+          ]
+        }
+      ],
+      "probe_answers": [
+        {
+          "competency_id": "high_load",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": false,
+          "resolved_after_follow_up": false
+        },
+        {
+          "competency_id": "message_queues",
+          "understanding_signal": true,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": true,
+          "resolved_after_follow_up": true
+        },
+        {
+          "competency_id": "performance_optimization",
+          "understanding_signal": false,
+          "paste_attempts_blocked": 0,
+          "had_follow_up": true,
+          "resolved_after_follow_up": false
+        }
+      ],
+      "nda_confirmations": []
+    }
+  ]
+}

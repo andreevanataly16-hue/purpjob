@@ -1,0 +1,149 @@
+/* Рекрутерская сторона: деловой регистр, та же фактичность. */
+
+.rec-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.rec-warning {
+  margin: 16px 0 14px;
+  padding: 12px 15px;
+  border: 1px solid rgba(255, 122, 122, .45);
+  border-radius: 10px;
+  background: rgba(255, 122, 122, .08);
+  font-size: 12.5px;
+  color: #ff9c9c;
+}
+
+.rec-filters {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.rec-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rec-filters select,
+.rec-filters input {
+  padding: 8px 11px;
+  background: var(--field);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.rec-filters input { width: 90px; }
+
+.rec-card {
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--field);
+}
+.rec-card.open { border-color: rgba(160, 107, 255, .4); }
+
+.rec-card-head { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+.rec-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(160, 107, 255, .16);
+  color: var(--purple-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+.rec-who { flex: 1; min-width: 140px; }
+.rec-who b { display: block; font-size: 14.5px; }
+.rec-who span { font-size: 12px; color: var(--muted); }
+
+.rec-numbers { display: flex; gap: 18px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+.rec-numbers b { display: block; font-size: 18px; color: var(--purple-soft); }
+
+.rec-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+.rec-counts { color: var(--muted); }
+.rec-pick { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.rec-pick input { accent-color: var(--purple); }
+
+.rec-detail:not(:empty) {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.rec-h { margin: 16px 0 9px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.rec-h:first-child { margin-top: 0; }
+
+.rec-req {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.rec-req.uncovered { border-color: rgba(255, 196, 122, .3); }
+.rec-req.covered { border-color: rgba(120, 220, 160, .25); }
+.rec-req-label { font-size: 13px; font-weight: 600; margin-right: 8px; }
+.rec-req p { margin: 5px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.rec-unevaluated {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.rec-unevaluated p { margin: 5px 0 0; color: var(--muted); }
+
+.rec-consent { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+.rec-trust {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.rec-trust-head { display: flex; justify-content: space-between; font-size: 13px; }
+.rec-trust-head b { color: var(--purple-soft); }
+.rec-trust p { margin: 5px 0 0; font-size: 12.5px; color: var(--muted); }
+.rec-refs { font-size: 12px; }
+.rec-nda { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.rec-competencies { display: grid; gap: 6px; }
+.rec-comp {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.rec-comp-name { font-weight: 600; margin-right: 8px; }
+.rec-comp p { margin: 5px 0 0; color: var(--muted); }
+
+.rec-compare { margin-top: 20px; }
+.rec-table-wrap { overflow-x: auto; }
+.rec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rec-table th,
+.rec-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.rec-table th { color: var(--muted); font-weight: 600; }
+.rec-table td:first-child { color: var(--muted); }
+.rec-gaps { color: #ffc47a; }
