@@ -9,6 +9,7 @@
 
 import './recruiter.css'
 import { api } from './api.js'
+import { feedbackBlock, loadFeedback, verdictButtons } from './calibration.js'
 
 const ui = {
   on: false,
@@ -147,6 +148,7 @@ function detailBody(detail) {
         ${item.evidence_visible && item.evidence_refs.length
           ? `<p class="rec-refs">Доказательства: ${item.evidence_refs.map(escape).join(', ')}</p>`
           : ''}
+        ${verdictButtons(item.explanation_id, 'trust_component', item.component_id)}
       </div>`).join('')}
     ${detail.nda_note_ru
       ? `<p class="rec-nda">Часть подтверждений — ${escape(detail.nda_note_ru)}.</p>`
@@ -161,8 +163,11 @@ function detailBody(detail) {
             ${escape(STATUS_RU[item.status] ?? item.status)}
           </span>
           <p>${escape(item.reason)}</p>
+          ${verdictButtons(item.explanation_id, 'prof_competency_status', item.competency_id)}
         </div>`).join('')}
-    </div>`
+    </div>
+
+    ${feedbackBlock()}`
 }
 
 /* ---------- сравнение ---------- */
@@ -307,6 +312,9 @@ async function loadDetail(id) {
     return
   }
   ui.detail = result.payload
+  // Отзыв читается вместе с карточкой: отметка должна стоять там же, где
+  // рекрутер увидел вывод, а не на отдельной форме потом по памяти.
+  await loadFeedback(id)
   renderRecruiter()
 }
 

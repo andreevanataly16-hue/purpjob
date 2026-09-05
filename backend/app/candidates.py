@@ -188,8 +188,22 @@ def statement_views(candidate: SeedCandidate) -> list[StatementView]:
 
 
 def prof_snapshots(candidate: SeedCandidate) -> list[dict]:
+    """Снимки индекса теми же функциями модуля 3, что и у живого кандидата.
+
+    Идентификатор объяснения дописывается здесь: рекрутерская сторона читает
+    снимок не через роутер модуля 3, а напрямую, и без него отметку модуля 14
+    было бы не к чему прицепить.
+    """
+    from app.xai import prof_explanation_id
+
     views = statement_views(candidate)
-    return [compute_snapshot(get_profile(level), views) for level in candidate.levels]
+    snapshots = []
+    for level in candidate.levels:
+        snapshot = compute_snapshot(get_profile(level), views)
+        for component in snapshot["components"]:
+            component["explanation_id"] = prof_explanation_id(level, component["competency_id"])
+        snapshots.append(snapshot)
+    return snapshots
 
 
 def trust_components(candidate: SeedCandidate) -> list[ComponentScore]:

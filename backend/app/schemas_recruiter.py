@@ -39,6 +39,9 @@ class ProfComponentOut(BaseModel):
     status: str
     reason: str
     weight: float
+    # Модуль 14: отметка «полезно / ввело в заблуждение» цепляется к тому же
+    # объяснению, что видит рекрутер, а не к пересобранному описанию.
+    explanation_id: str = ""
 
 
 class RadarPointOut(BaseModel):

@@ -1005,3 +1005,129 @@ class ExportRequest(Base):
     generated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class RecruiterFeedback(Base):
+    """Что рекрутер увидел вживую после того, как посмотрел профиль (модуль 14).
+
+    Четвёртый механизм обратной связи в продукте, и сливать его с тремя
+    предыдущими нельзя: «вопрос не подходит» - про качество вопроса, спор - про
+    вывод об одном человеке, поводы вернуться - про удержание. Здесь - про то,
+    совпал ли вывод системы с реальностью, и это сигнал про формулу.
+
+    **Отзыв не меняет балл кандидата ни при каких условиях.** Мнение одного
+    человека не должно уметь уронить чей-то профиль - на этом стоит весь
+    модуль 6, и данные отсюда идут только в общую статистику.
+    """
+
+    __tablename__ = "recruiter_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recruiter_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    candidate_id: Mapped[str] = mapped_column(String(60), index=True, nullable=False)
+    vacancy_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+    relevance_outcome: Mapped[str] = mapped_column(String(30), nullable=False)
+
+    # Баллы на момент отзыва. Хранятся здесь, потому что сравнивать вывод с
+    # исходом нужно по тому, что система утверждала тогда, а не по тому, во что
+    # профиль превратился позже.
+    trust_score_at_feedback: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    prof_score_at_feedback: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    free_text_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ComponentFeedback(Base):
+    """Отметка «полезно / ввело в заблуждение» на конкретном выводе.
+
+    Адресуется через `explanation_id` модуля 7 - тем же способом, которым
+    адресуется всё остальное. Второй, более рыхлый способ сказать «раздел Trust
+    был непонятный» означал бы, что сводку потом не собрать.
+    """
+
+    __tablename__ = "component_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    feedback_id: Mapped[int] = mapped_column(
+        ForeignKey("recruiter_feedback.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    explanation_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    subject_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    verdict: Mapped[str] = mapped_column(String(20), nullable=False)
+    comment_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class CalibrationConstantChangeLog(Base):
+    """Изменение калибруемой константы (§4.4 модуля 14). Только добавление.
+
+    Единственный законный путь, которым любая калибруемая величина в этом
+    продукте вообще может измениться. Человек, меняющий то, как система считает
+    всех дальше, отвечает как минимум так же, как модератор, правящий одну
+    запись, - поэтому причина обязательна.
+
+    Изменение действует только вперёд: прошлые снимки - исторический факт, и
+    задним числом они не переписываются.
+    """
+
+    __tablename__ = "calibration_constant_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    constant_ref: Mapped[str] = mapped_column(String(120), nullable=False)
+    previous_value: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    new_value: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    rationale_ru: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # На чём основано решение - чтобы через полгода было видно не только что
+    # поменяли, но и почему это тогда выглядело обоснованным.
+    based_on_feedback_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    trust_accuracy_before: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    applied_by: Mapped[str] = mapped_column(String(120), default="operator", nullable=False)
+    applied_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class AuditBatch(Base):
+    """Партия профилей, отобранных на ручную проверку (§4.5 модуля 14).
+
+    Этот модуль - отборщик, а модуль 7 - проверяющий: каждый отобранный
+    кандидат превращается в обычный спор `origin: sampled_audit` и разбирается
+    существующей очередью. Второго экрана разбора здесь нет намеренно.
+    """
+
+    __tablename__ = "audit_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    selection_criteria: Mapped[str] = mapped_column(String(30), nullable=False)
+    candidate_ids: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    dispute_case_ids: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+@event.listens_for(CalibrationConstantChangeLog, "before_update", propagate=True)
+def _forbid_calibration_update(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation(
+        "Журнал калибровки только пополняется: исправление - это новая запись."
+    )
+
+
+@event.listens_for(CalibrationConstantChangeLog, "before_delete", propagate=True)
+def _forbid_calibration_delete(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation("Записи журнала калибровки не удаляются.")

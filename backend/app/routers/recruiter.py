@@ -254,6 +254,7 @@ def _detail(
                     "status": item["status"],
                     "reason": _third_person(item["reason"]),
                     "weight": item["weight"],
+                    "explanation_id": item.get("explanation_id", ""),
                 }
                 for item in snapshot["components"]
             ],
