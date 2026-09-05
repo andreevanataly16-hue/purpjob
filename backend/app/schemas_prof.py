@@ -42,6 +42,9 @@ class ComponentOut(BaseModel):
     explanation_id: str = ""
     moderator_note_ru: str | None = None
 
+    # Модуль 8: насколько компетенция считается сейчас. Единица - полный вес.
+    market_weight_multiplier: float = 1.0
+
 
 class RadarPointOut(BaseModel):
     competency_id: str

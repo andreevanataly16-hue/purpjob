@@ -19,10 +19,11 @@ let nda = null
 let trust = null
 let disputes = null
 let moderation = null
+let growth = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe, nda, trust, disputes, moderation }
+  return { ...profile, prof, probe, nda, trust, disputes, moderation, growth }
 }
 
 export function getState() {
@@ -48,6 +49,7 @@ export function clearProfile() {
   trust = null
   disputes = null
   moderation = null
+  growth = null
   publish()
 }
 
@@ -108,6 +110,17 @@ async function refreshModeration() {
   if (result.ok && isQueue(result.payload)) moderation = result.payload
 }
 
+function isGrowth(payload) {
+  return Boolean(payload && payload.note_ru && Array.isArray(payload.periods))
+}
+
+/* История роста читается после всего остального: она наблюдает за тем, что
+   уже посчитали другие модули, и должна видеть их последнее состояние. */
+async function refreshGrowth() {
+  const result = await api('/api/growth')
+  if (result.ok && isGrowth(result.payload)) growth = result.payload
+}
+
 async function refreshProf() {
   const result = await api('/api/prof')
   if (result.ok && isProf(result.payload)) prof = result.payload
@@ -123,6 +136,7 @@ export async function loadProfile() {
     refreshDisputes(),
     refreshModeration()
   ])
+  await refreshGrowth()
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
   return profileResult
@@ -137,6 +151,7 @@ export async function mutate(path, options = {}) {
       refreshProf(), refreshProbe(), refreshNda(), refreshTrust(),
       refreshDisputes(), refreshModeration()
     ])
+    await refreshGrowth()
     publish()
   }
   return result
@@ -153,6 +168,7 @@ export async function mutateProbe(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshNda(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
+    await refreshGrowth()
     publish()
   }
   return result
@@ -168,6 +184,7 @@ export async function mutateNda(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
+    await refreshGrowth()
     publish()
   }
   return result
@@ -183,6 +200,7 @@ export async function mutateTrust(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshNda(), refreshDisputes(), refreshModeration()
     ])
+    await refreshGrowth()
     publish()
   }
   return result
@@ -207,6 +225,18 @@ export async function mutateModeration(path, options = {}) {
   if (result.ok && isQueue(result.payload)) {
     moderation = result.payload
     await Promise.all([refreshProf(), refreshTrust(), refreshProbe(), refreshDisputes()])
+    await refreshGrowth()
+    publish()
+  }
+  return result
+}
+
+/* Актуализация компетенции меняет индекс - перечитываем его следом. */
+export async function mutateGrowth(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isGrowth(result.payload)) {
+    growth = result.payload
+    await refreshProf()
     publish()
   }
   return result
@@ -217,6 +247,7 @@ export async function mutateProf(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProf(result.payload)) {
     prof = result.payload
+    await refreshGrowth()
     publish()
   }
   return result

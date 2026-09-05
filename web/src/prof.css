@@ -182,3 +182,14 @@
   .score-value { font-size: 38px; }
   .radar-wrap { gap: 12px; }
 }
+
+/* Пометка о понижении веса за давность (модуль 8). Не про потерю
+   подтверждения, а про то, насколько оно считается сейчас. */
+.comp .stale-note {
+  margin: 8px 0 0;
+  padding: 8px 11px;
+  border-left: 2px solid rgba(255, 196, 122, .5);
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}

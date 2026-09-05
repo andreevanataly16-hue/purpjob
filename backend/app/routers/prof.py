@@ -71,6 +71,32 @@ def _statement_views(db: Session, user: User) -> list[StatementView]:
     return views
 
 
+def _apply_freshness(snapshot: dict, weights: dict[str, float]) -> dict:
+    """Множитель актуальности из модуля 8 - единственное место его чтения (§0).
+
+    Устаревание влияет только на то, насколько компетенция считается СЕЙЧАС для
+    соответствия роли. Статус компетенции и доказательства не трогаются вообще:
+    подтверждённое остаётся подтверждённым, и это видно на экране. В Trust Score
+    множитель не попадает никогда - там речь о достоверности сведений, а она от
+    времени не портится.
+    """
+    if not weights:
+        return snapshot
+
+    for component in snapshot["components"]:
+        multiplier = weights.get(component["competency_id"], 1.0)
+        component["market_weight_multiplier"] = multiplier
+        if multiplier < 1.0:
+            component["score_contribution"] = round(
+                component["score_contribution"] * multiplier, 6
+            )
+
+    snapshot["overall_score"] = round(
+        sum(item["score_contribution"] for item in snapshot["components"]) * 100
+    )
+    return snapshot
+
+
 def _apply_moderation(snapshot: dict, applied: list) -> dict:
     """Накладывает ручные правки модератора на посчитанный снимок (модуль 7).
 
@@ -134,6 +160,10 @@ def _payload(db: Session, user: User) -> ProfOut:
     views = _statement_views(db, user)
     state = _visibility(db, user)
     applied = overrides.for_user(db, user)
+    # Локальный импорт: модуль 8 читает модуль 3, поэтому наверху была бы петля.
+    from app.routers.growth import multipliers
+
+    weights = multipliers(db, user)
 
     return ProfOut.model_validate(
         {
@@ -141,7 +171,10 @@ def _payload(db: Session, user: User) -> ProfOut:
             "available_levels": list(LEVELS),
             "max_roles": MAX_ROLES,
             "snapshots": [
-                _apply_moderation(compute_snapshot(get_profile(role.level), views), applied)
+                _apply_freshness(
+                    _apply_moderation(compute_snapshot(get_profile(role.level), views), applied),
+                    weights,
+                )
                 for role in roles
             ],
             "visibility": {"mode": state.mode, "changed_at": state.changed_at},

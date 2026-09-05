@@ -112,14 +112,17 @@ def _white_spots(db: Session, user: User) -> list[ReferenceCompetency]:
     if not roles:
         return []
 
-    views = _statement_views(db, user)
+    # Снимки берутся у модуля 3 целиком, а не пересчитываются здесь: иначе
+    # исправленный модератором статус остался бы белым пятном и продукт снова
+    # спросил бы про уже закрытое (модули 7 и 8).
+    from app.routers.prof import _payload
+
     merged: dict[str, ReferenceCompetency] = {}
 
-    for role in roles:
-        profile = get_profile(role.level)
-        snapshot = compute_snapshot(profile, views)
+    for snapshot in _payload(db, user).snapshots:
+        profile = get_profile(snapshot.level)
         by_id = {c.competency_id: c for c in profile.competencies}
-        for competency_id in snapshot["white_spots"]:
+        for competency_id in snapshot.white_spots:
             competency = by_id[competency_id]
             current = merged.get(competency_id)
             if current is None or competency.weight > current.weight:

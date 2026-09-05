@@ -735,3 +735,128 @@ def _forbid_history_update(mapper, connection, target) -> None:  # noqa: ARG001
 @event.listens_for(DisputeHistoryEntry, "before_delete", propagate=True)
 def _forbid_history_delete(mapper, connection, target) -> None:  # noqa: ARG001
     raise AppendOnlyViolation("Записи журнала спора не удаляются.")
+
+
+class SearchContext(Base):
+    """Эпизод поиска работы (§4.1 модуля 8).
+
+    В этой фазе сущность существует ровно затем, чтобы гарантию сохранности
+    можно было проверить: закрытие эпизода поиска не должно делать с профилем
+    вообще ничего. Настоящего процесса отклика в продукте нет, поэтому записи
+    создаются только тестами - но связь `search_context_id` заведена, чтобы
+    будущий модуль откликов не спроектировали так, что он умеет каскадно
+    удалять доказательства.
+    """
+
+    __tablename__ = "search_contexts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    label: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # Заполнение этого поля обязано не иметь последствий ни для чего (FR1.1).
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ProfileGrowthEvent(Base):
+    """Как профиль становился сильнее (§4.2 модуля 8). Только добавление.
+
+    Это отдельный журнал от журнала споров модуля 7, и сливать их нельзя:
+    тот нужен для отчётности - кто и что изменил; этот для кандидата - что у
+    него выросло и когда. Разные читатели и разный тон.
+    """
+
+    __tablename__ = "profile_growth_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    subject_ref: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+
+    # Что с чем стало. Хранится здесь, потому что статусы нигде не хранятся:
+    # они пересчитываются, и без записи прошлое состояние восстановить нечем.
+    from_value: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    to_value: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    description_ru: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class CompetencyFreshness(Base):
+    """Актуальность подтверждения компетенции (§4.3 модуля 8).
+
+    Множитель отсюда читает ТОЛЬКО модуль 3 при сборке индекса. Trust Score его
+    не видит и видеть не должен: устаревание - это про соответствие рынку, а не
+    про достоверность сведений (§0 FRD). На сам статус компетенции и на
+    доказательства это не влияет вообще - подтверждённое остаётся
+    подтверждённым навсегда.
+    """
+
+    __tablename__ = "competency_freshness"
+    __table_args__ = (
+        UniqueConstraint("user_id", "competency_id", name="uq_freshness_user_competency"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    competency_id: Mapped[str] = mapped_column(String(60), nullable=False)
+
+    last_confirmed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    decay_countdown_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class ReturnTrigger(Base):
+    """Повод вернуться (§4.4 модуля 8).
+
+    Значимая величина здесь одна - `acted_upon`. Открытое уведомление ничего не
+    доказывает: гипотеза H1b проверяется тем, вернулся ли человек и сделал ли
+    что-то, а не тем, сколько раз ему показали напоминание.
+    """
+
+    __tablename__ = "return_triggers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    trigger_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    related_ref: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acted_upon_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+@event.listens_for(ProfileGrowthEvent, "before_update", propagate=True)
+def _forbid_growth_update(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation(
+        "История роста только пополняется: переписать прошлое нельзя, иначе она перестанет "
+        "быть историей."
+    )
+
+
+@event.listens_for(ProfileGrowthEvent, "before_delete", propagate=True)
+def _forbid_growth_delete(mapper, connection, target) -> None:  # noqa: ARG001
+    raise AppendOnlyViolation("Записи истории роста не удаляются.")

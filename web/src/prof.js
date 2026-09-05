@@ -209,6 +209,12 @@ function competencyRow(item) {
         ${item.moderator_note_ru
           ? `<p class="moderated">${escape(item.moderator_note_ru)}</p>`
           : ''}
+        ${item.market_weight_multiplier < 1
+          ? `<p class="stale-note">Считается сейчас с весом
+               ${Math.round(item.market_weight_multiplier * 100)}% — давно не обновлялось.
+               Подтверждение осталось, актуальность возвращается одним нажатием
+               в блоке «История роста».</p>`
+          : ''}
         ${whyButton(item.explanation_id)}
       </div>
       <div class="weight">
