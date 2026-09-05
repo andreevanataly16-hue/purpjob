@@ -504,3 +504,73 @@ class NDAMirrorSolution(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class TrustFinding(Base):
+    """Ответ кандидата на находку об атрибуции (§4.3 FRD модуля 6).
+
+    Сама находка не хранится: она пересчитывается из данных профиля. Хранится
+    только решение кандидата - и оно ничего не отнимает ни в каком случае.
+
+    Отказ здесь сильнее обычного: от находки не остаётся следа вовсе. Поэтому
+    он не пишется в DeclineRecord - запись об отказе как раз и была бы следом.
+    """
+
+    __tablename__ = "trust_findings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    # Источник, про который спросили. Доказательство может быть удалено - тогда
+    # запись остаётся сиротой и в расчёт не идёт.
+    evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
+    )
+    candidate_response: Mapped[str] = mapped_column(String(30), nullable=False)
+    responded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ContradictionCase(Base):
+    """Нестыковка между двумя сведениями самого кандидата (§4.4).
+
+    Найдена локальными проверками - наружу этот модуль не ходит. Разбирается
+    одним из трёх способов, и ни один из них не наказание: это обычное
+    приведение профиля в порядок.
+    """
+
+    __tablename__ = "contradiction_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    statement_id: Mapped[int | None] = mapped_column(
+        ForeignKey("statements.id", ondelete="CASCADE"), nullable=True
+    )
+    evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True
+    )
+
+    detected_by: Mapped[str] = mapped_column(
+        String(30), default="local_consistency_check", nullable=False
+    )
+    check_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    severity: Mapped[str] = mapped_column(String(10), default="minor", nullable=False)
+    detail_ru: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    resolution_path: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    explanation_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    corrected_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
+    # Приостановка показа профиля по спорному уровню. В этой фазе рекрутерской
+    # стороны нет, поэтому поле только заполняется - показывать его негде.
+    visibility_suspended: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

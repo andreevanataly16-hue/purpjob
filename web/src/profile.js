@@ -8,9 +8,10 @@
 import './profile.css'
 import { api, apiUpload, errorText } from './api.js'
 import { applyProfile, clearProfile, getState, loadProfile, mutate, subscribe } from './store.js'
-import { PROF_SKELETON, initProf, renderProf, resetProf } from './prof.js'
+import { PROF_EXTRAS_SKELETON, PROF_SKELETON, initProf, renderProf, resetProf } from './prof.js'
 import { PROBE_SKELETON, initProbe, renderProbe, resetProbe } from './probe.js'
 import { NDA_SKELETON, initNda, renderNda, resetNda } from './nda.js'
+import { TRUST_SKELETON, initTrust, renderTrust, resetTrust } from './trust.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -96,6 +97,10 @@ const SKELETON = `
   <div class="counters" id="counters"></div>
 
   ${PROF_SKELETON}
+
+  ${TRUST_SKELETON}
+
+  ${PROF_EXTRAS_SKELETON}
 
   ${PROBE_SKELETON}
 
@@ -397,6 +402,7 @@ function render(state) {
   renderProf(state)
   renderProbe(state)
   renderNda(state)
+  renderTrust(state)
 }
 
 /* ---------- действия ---------- */
@@ -677,6 +683,7 @@ export async function initProfile() {
     initProf({ onStrengthen: strengthen, getState, root })
     initProbe({ getState, root })
     initNda({ getState, root })
+    initTrust({ getState, root })
   }
 
   document.querySelector('.card').classList.add('wide')
@@ -688,6 +695,7 @@ export function resetProfile() {
   resetProf()
   resetProbe()
   resetNda()
+  resetTrust()
   ui.parsed = null
   ui.rawInputId = null
   ui.target = null

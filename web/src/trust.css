@@ -1,0 +1,110 @@
+/* Trust Score: балл, компоненты с объяснениями, находки и нестыковки. */
+
+.trust-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0 6px;
+}
+.trust-value {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--ok);
+}
+.trust-of { font-size: 14px; color: var(--muted); }
+
+.trust-legend {
+  margin: 12px 0 0;
+  padding: 11px 14px;
+  border-left: 2px solid var(--line-strong);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.trust-components { display: grid; gap: 9px; margin-top: 20px; }
+.trust-component {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+}
+.trust-component .top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trust-component .name { font-size: 15px; font-weight: 600; flex: 1; min-width: 140px; }
+.trust-component .score { font-size: 20px; font-weight: 700; color: var(--purple-soft); }
+.trust-component .why { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); }
+.trust-component .note {
+  margin: 8px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--line-strong);
+  font-size: 12.5px;
+  color: #ffc47a;
+}
+.trust-bar {
+  height: 5px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.trust-bar i { display: block; height: 100%; background: var(--purple); }
+.trust-sources { margin-top: 9px; font-size: 12.5px; color: var(--muted); }
+
+/* Следующее действие */
+.trust-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 15px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(160, 107, 255, .3);
+  border-radius: 11px;
+  background: rgba(160, 107, 255, .07);
+  font-size: 13.5px;
+}
+.trust-action span { flex: 1; min-width: 200px; }
+
+/* Находки и нестыковки */
+.finding {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 13px 15px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--field);
+}
+.finding span { flex: 1; min-width: 200px; font-size: 13.5px; }
+
+.contradiction {
+  padding: 15px 16px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 196, 122, .3);
+  border-radius: 12px;
+  background: rgba(255, 196, 122, .05);
+}
+.contradiction.resolved { border-color: var(--line); background: var(--field); }
+.contradiction .detail { margin: 0 0 12px; font-size: 13.5px; }
+.contradiction .paths { display: flex; gap: 10px; flex-wrap: wrap; }
+.contradiction textarea { min-height: 90px; margin-top: 10px; }
+.contradiction input[type="text"] {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  background: var(--field);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}

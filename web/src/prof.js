@@ -53,6 +53,11 @@ export const PROF_SKELETON = `
     <p class="msg" id="prof-msg"></p>
   </section>
 
+`
+
+/* Белые пятна и видимость идут после Trust Score: сначала два балла продукта
+   рядом, потом что с ними делать. */
+export const PROF_EXTRAS_SKELETON = `
   <section class="block" id="white-spots-block">
     <h2>Белые пятна</h2>
     <p class="sub">

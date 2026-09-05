@@ -16,10 +16,11 @@ let profile = EMPTY
 let prof = null
 let probe = null
 let nda = null
+let trust = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe, nda }
+  return { ...profile, prof, probe, nda, trust }
 }
 
 export function getState() {
@@ -42,6 +43,7 @@ export function clearProfile() {
   prof = null
   probe = null
   nda = null
+  trust = null
   publish()
 }
 
@@ -72,6 +74,15 @@ async function refreshNda() {
   if (result.ok && isNda(result.payload)) nda = result.payload
 }
 
+function isTrust(payload) {
+  return Boolean(payload && 'overall_score' in payload && payload.components)
+}
+
+async function refreshTrust() {
+  const result = await api('/api/trust')
+  if (result.ok && isTrust(result.payload)) trust = result.payload
+}
+
 async function refreshProf() {
   const result = await api('/api/prof')
   if (result.ok && isProf(result.payload)) prof = result.payload
@@ -82,7 +93,8 @@ export async function loadProfile() {
     api('/api/profile'),
     refreshProf(),
     refreshProbe(),
-    refreshNda()
+    refreshNda(),
+    refreshTrust()
   ])
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
@@ -94,7 +106,7 @@ export async function mutate(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProfile(result.payload)) {
     profile = result.payload
-    await Promise.all([refreshProf(), refreshProbe(), refreshNda()])
+    await Promise.all([refreshProf(), refreshProbe(), refreshNda(), refreshTrust()])
     publish()
   }
   return result
@@ -108,7 +120,7 @@ export async function mutateProbe(path, options = {}) {
     probe = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await Promise.all([refreshProf(), refreshNda()])
+    await Promise.all([refreshProf(), refreshNda(), refreshTrust()])
     publish()
   }
   return result
@@ -121,7 +133,20 @@ export async function mutateNda(path, options = {}) {
     nda = result.payload
     const profileResult = await api('/api/profile')
     if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
-    await Promise.all([refreshProf(), refreshProbe()])
+    await Promise.all([refreshProf(), refreshProbe(), refreshTrust()])
+    publish()
+  }
+  return result
+}
+
+/* Разбор нестыковки и ответ про источник меняют профиль - перечитываем всё. */
+export async function mutateTrust(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isTrust(result.payload)) {
+    trust = result.payload
+    const profileResult = await api('/api/profile')
+    if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
+    await Promise.all([refreshProf(), refreshProbe(), refreshNda()])
     publish()
   }
   return result
