@@ -1,0 +1,360 @@
+{
+  "note": "Вакансии для локального прототипа (модуль 10). Набор рукописный и намеренно маленький: живого парсинга в этой фазе нет, а раздутая лента противоречила бы принципу «глубина вместо объёма» (§6 FRD). Записи выглядят так, как выглядели бы уже обработанные фильтрами А и Б объявления, а не как сырой текст из канала.",
+  "vacancies": [
+    {
+      "id": "vac_001",
+      "title_ru": "Backend-разработчик (Python)",
+      "company_label": "Финтех-продукт, 200 человек",
+      "stated_level": "Middle",
+      "filter_a_grade": "executive",
+      "role_breadth": "low",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_middle"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_001",
+          "competency_id": "core_language",
+          "label_ru": "Python в продакшене",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_002",
+          "competency_id": "rest_api_design",
+          "label_ru": "Проектирование REST API",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_003",
+          "competency_id": "database_design",
+          "label_ru": "PostgreSQL и проектирование схем",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_004",
+          "competency_id": "testing",
+          "label_ru": "Тесты как часть работы, а не отдельный этап",
+          "criticality": "nice_to_have"
+        },
+        {
+          "id": "req_005",
+          "competency_id": null,
+          "taxonomy_key": "ClickHouse",
+          "label_ru": "Опыт с ClickHouse",
+          "criticality": "mandatory"
+        }
+      ],
+      "industry_context": "Финансовые сервисы",
+      "ai_leverage_flag": false,
+      "source_channels": ["@backend_jobs_ru", "career.example-fintech.ru"],
+      "created_at": "2026-08-28T09:00:00+03:00"
+    },
+    {
+      "id": "vac_002",
+      "title_ru": "Senior Backend (Go) в команду платформы",
+      "company_label": "Маркетплейс, платформенная команда",
+      "stated_level": "Senior",
+      "filter_a_grade": "executive",
+      "role_breadth": "low",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_senior"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_010",
+          "competency_id": "core_language",
+          "label_ru": "Go в высоконагруженном сервисе",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_011",
+          "competency_id": "high_load",
+          "label_ru": "Опыт с нагрузкой от 1000 rps",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_012",
+          "competency_id": "distributed_systems",
+          "label_ru": "Распределённые системы и согласованность данных",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_013",
+          "competency_id": "message_queues",
+          "label_ru": "Kafka или аналог",
+          "criticality": "nice_to_have"
+        },
+        {
+          "id": "req_014",
+          "competency_id": "observability",
+          "label_ru": "Мониторинг и разбор инцидентов",
+          "criticality": "nice_to_have"
+        }
+      ],
+      "industry_context": "E-commerce",
+      "ai_leverage_flag": null,
+      "source_channels": ["@golang_jobs"],
+      "created_at": "2026-08-30T12:30:00+03:00"
+    },
+    {
+      "id": "vac_003",
+      "title_ru": "Backend-разработчик с задачами DevOps",
+      "company_label": "Логистический стартап, 30 человек",
+      "stated_level": "Middle",
+      "filter_a_grade": "executive",
+      "role_breadth": "high",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_middle"
+        },
+        {
+          "cluster_label_ru": "DevOps и инфраструктура",
+          "reference_profile_id": null
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_020",
+          "competency_id": "core_language",
+          "label_ru": "Python",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_021",
+          "competency_id": "containers",
+          "label_ru": "Docker и Kubernetes",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_022",
+          "competency_id": "ci_cd",
+          "label_ru": "Настройка CI/CD с нуля",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_023",
+          "competency_id": "rest_api_design",
+          "label_ru": "REST API",
+          "criticality": "nice_to_have"
+        },
+        {
+          "id": "req_024",
+          "competency_id": null,
+          "taxonomy_key": "Terraform",
+          "label_ru": "Terraform",
+          "criticality": "nice_to_have"
+        }
+      ],
+      "industry_context": "Логистика",
+      "ai_leverage_flag": false,
+      "source_channels": ["@devops_jobs", "@backend_jobs_ru"],
+      "created_at": "2026-09-01T10:15:00+03:00"
+    },
+    {
+      "id": "vac_004",
+      "title_ru": "Разработчик биллинга (Python)",
+      "company_label": "Телеком-оператор",
+      "stated_level": "Middle",
+      "filter_a_grade": "executive",
+      "role_breadth": "low",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_middle"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_030",
+          "competency_id": "core_language",
+          "label_ru": "Python",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_031",
+          "competency_id": "database_design",
+          "label_ru": "PostgreSQL",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_032",
+          "competency_id": "query_optimization",
+          "label_ru": "Оптимизация тяжёлых запросов",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_033",
+          "competency_id": "caching",
+          "label_ru": "Кеширование под нагрузкой",
+          "criticality": "nice_to_have"
+        },
+        {
+          "id": "req_034",
+          "competency_id": null,
+          "taxonomy_key": "ClickHouse",
+          "label_ru": "ClickHouse для отчётности",
+          "criticality": "nice_to_have"
+        }
+      ],
+      "industry_context": "Телеком",
+      "ai_leverage_flag": false,
+      "source_channels": ["@python_jobs_ru"],
+      "created_at": "2026-09-03T16:45:00+03:00"
+    },
+    {
+      "id": "vac_005",
+      "title_ru": "Ведущий инженер платформы данных",
+      "company_label": "Медиахолдинг",
+      "stated_level": "Senior",
+      "filter_a_grade": "executive",
+      "role_breadth": "medium",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_senior"
+        },
+        {
+          "cluster_label_ru": "Data engineering",
+          "reference_profile_id": null
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_040",
+          "competency_id": "core_language",
+          "label_ru": "Python",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_041",
+          "competency_id": "high_load",
+          "label_ru": "Потоки данных под нагрузкой",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_042",
+          "competency_id": null,
+          "taxonomy_key": "ClickHouse",
+          "label_ru": "ClickHouse",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_043",
+          "competency_id": "message_queues",
+          "label_ru": "Kafka",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_044",
+          "competency_id": "performance_optimization",
+          "label_ru": "Оптимизация производительности пайплайнов",
+          "criticality": "nice_to_have"
+        }
+      ],
+      "industry_context": "Медиа",
+      "ai_leverage_flag": true,
+      "source_channels": ["@data_eng_jobs"],
+      "created_at": "2026-09-04T11:00:00+03:00"
+    },
+    {
+      "id": "vac_006",
+      "title_ru": "Backend-разработчик (Python), команда интеграций",
+      "company_label": "SaaS для ритейла",
+      "stated_level": "Middle",
+      "filter_a_grade": "executive",
+      "role_breadth": "low",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_middle"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_050",
+          "competency_id": "core_language",
+          "label_ru": "Python",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_051",
+          "competency_id": "rest_api_design",
+          "label_ru": "Интеграции по REST и gRPC",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_052",
+          "competency_id": "async_programming",
+          "label_ru": "Асинхронный код",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_053",
+          "competency_id": "testing",
+          "label_ru": "Автотесты интеграций",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_054",
+          "competency_id": "security",
+          "label_ru": "Безопасность внешних интеграций",
+          "criticality": "nice_to_have"
+        }
+      ],
+      "industry_context": "Ритейл",
+      "ai_leverage_flag": false,
+      "source_channels": ["@backend_jobs_ru"],
+      "created_at": "2026-09-05T08:20:00+03:00"
+    },
+    {
+      "id": "vac_007",
+      "title_ru": "Руководитель backend-направления",
+      "company_label": "Продуктовая компания, 80 человек",
+      "stated_level": "Senior",
+      "filter_a_grade": "management",
+      "role_breadth": "high",
+      "functional_clusters": [
+        {
+          "cluster_label_ru": "Backend-разработка",
+          "reference_profile_id": "ref_backend_fullstack_python_go_senior"
+        },
+        {
+          "cluster_label_ru": "Управление командой",
+          "reference_profile_id": null
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_060",
+          "competency_id": "core_language",
+          "label_ru": "Python или Go",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_061",
+          "competency_id": "system_from_scratch",
+          "label_ru": "Запуск системы с нуля",
+          "criticality": "mandatory"
+        },
+        {
+          "id": "req_062",
+          "competency_id": null,
+          "taxonomy_key": "People management",
+          "label_ru": "Управление командой от 5 человек",
+          "criticality": "mandatory"
+        }
+      ],
+      "industry_context": null,
+      "ai_leverage_flag": null,
+      "source_channels": ["@it_lead_jobs"],
+      "created_at": "2026-09-05T09:40:00+03:00"
+    }
+  ]
+}

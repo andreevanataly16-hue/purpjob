@@ -20,10 +20,11 @@ let trust = null
 let disputes = null
 let moderation = null
 let growth = null
+let vacancies = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe, nda, trust, disputes, moderation, growth }
+  return { ...profile, prof, probe, nda, trust, disputes, moderation, growth, vacancies }
 }
 
 export function getState() {
@@ -50,6 +51,7 @@ export function clearProfile() {
   disputes = null
   moderation = null
   growth = null
+  vacancies = null
   publish()
 }
 
@@ -110,6 +112,17 @@ async function refreshModeration() {
   if (result.ok && isQueue(result.payload)) moderation = result.payload
 }
 
+function isVacancies(payload) {
+  return Boolean(payload && payload.note_ru && Array.isArray(payload.vacancies))
+}
+
+/* Лента пересчитывается вместе со всем остальным: совпадение - проекция
+   PROF.индекса, и после закрытого пробела оно обязано измениться само. */
+async function refreshVacancies() {
+  const result = await api('/api/vacancies')
+  if (result.ok && isVacancies(result.payload)) vacancies = result.payload
+}
+
 function isGrowth(payload) {
   return Boolean(payload && payload.note_ru && Array.isArray(payload.periods))
 }
@@ -136,7 +149,7 @@ export async function loadProfile() {
     refreshDisputes(),
     refreshModeration()
   ])
-  await refreshGrowth()
+  await Promise.all([refreshGrowth(), refreshVacancies()])
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
   return profileResult
@@ -151,7 +164,7 @@ export async function mutate(path, options = {}) {
       refreshProf(), refreshProbe(), refreshNda(), refreshTrust(),
       refreshDisputes(), refreshModeration()
     ])
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result
@@ -168,7 +181,7 @@ export async function mutateProbe(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshNda(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result
@@ -184,7 +197,7 @@ export async function mutateNda(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result
@@ -200,7 +213,7 @@ export async function mutateTrust(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshNda(), refreshDisputes(), refreshModeration()
     ])
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result
@@ -225,7 +238,7 @@ export async function mutateModeration(path, options = {}) {
   if (result.ok && isQueue(result.payload)) {
     moderation = result.payload
     await Promise.all([refreshProf(), refreshTrust(), refreshProbe(), refreshDisputes()])
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result
@@ -247,7 +260,7 @@ export async function mutateProf(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProf(result.payload)) {
     prof = result.payload
-    await refreshGrowth()
+    await Promise.all([refreshGrowth(), refreshVacancies()])
     publish()
   }
   return result

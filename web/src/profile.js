@@ -18,6 +18,9 @@ import {
 import { MODERATION_SKELETON, initModeration, renderModeration, resetModeration } from './moderation.js'
 import { GROWTH_SKELETON, initGrowth, renderGrowth, resetGrowth } from './growth.js'
 import { EXPORT_SKELETON, initExport, renderExport, resetExport } from './export.js'
+import {
+  VACANCIES_SKELETON, initVacancies, renderVacancies, resetVacancies
+} from './vacancies.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -108,6 +111,8 @@ const SKELETON = `
   ${TRUST_SKELETON}
 
   ${PROF_EXTRAS_SKELETON}
+
+  ${VACANCIES_SKELETON}
 
   ${PROBE_SKELETON}
 
@@ -418,6 +423,7 @@ function render(state) {
   renderProbe(state)
   renderNda(state)
   renderTrust(state)
+  renderVacancies(state)
   renderExport(state)
   renderGrowth(state)
   renderXai(state)
@@ -703,6 +709,18 @@ export async function initProfile() {
     initProbe({ getState, root })
     initNda({ getState, root })
     initTrust({ getState, root })
+    initVacancies({
+      getState,
+      root,
+      // Требование, которого нет ни в одном эталоне, закрывается только через
+      // модуль 2: кандидат добавляет компетенцию и доказательство к ней.
+      onAddEvidence: label => {
+        const field = $('manual-name')
+        field.value = label
+        $('evidence-map').scrollIntoView({ behavior: 'smooth', block: 'start' })
+        field.focus({ preventScroll: true })
+      }
+    })
     initExport({ getState, root })
     initGrowth({ getState, root })
     initXai({ getState, root })
@@ -719,6 +737,7 @@ export function resetProfile() {
   resetProbe()
   resetNda()
   resetTrust()
+  resetVacancies()
   resetExport()
   resetGrowth()
   resetXai()
