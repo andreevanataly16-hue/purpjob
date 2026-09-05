@@ -107,6 +107,10 @@ FONT_MISSING_RU = (
 )
 
 
+class FontMissing(RuntimeError):
+    """Шрифта с кириллицей нет - собирать документ нечем."""
+
+
 def find_font() -> Path | None:
     if BUNDLED_FONT.exists():
         return BUNDLED_FONT
@@ -277,6 +281,13 @@ def build_pdf(data: ResumeData) -> bytes:
     ни адресатов, ни очереди отправки - и это требование, а не упущение.
     """
     from io import BytesIO
+
+    # Шрифт регистрируется здесь же, а не «где-то раньше по коду»: сборка
+    # документа не должна зависеть от того, вызвал ли кто-то до неё нужную
+    # функцию. Иначе первый же вызов из другого места молча падает на
+    # внутренностях reportlab вместо понятного сообщения.
+    if not register_font():
+        raise FontMissing(FONT_MISSING_RU)
 
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)

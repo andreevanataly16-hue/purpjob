@@ -412,3 +412,38 @@ def test_contacts_are_absent_from_the_file_when_excluded(signed_client):
 
     assert "Контакты" not in text
     assert "@" not in text
+
+
+def test_build_pdf_does_not_depend_on_call_order():
+    """Сборка документа сама заботится о шрифте.
+
+    Иначе первый вызов из нового места падает на внутренностях reportlab
+    вместо понятного сообщения - а это ровно то, что случилось при ручной
+    проверке.
+    """
+    import reportlab.pdfbase.pdfmetrics as pdfmetrics
+
+    from app.resume import FONT_NAME, ResumeData, build_pdf, find_font
+    from datetime import datetime, timezone
+
+    if find_font() is None:
+        import pytest
+
+        pytest.skip("на этой машине нет шрифта с кириллицей")
+
+    # Убираем регистрацию, как будто процесс только что стартовал.
+    pdfmetrics._fonts.pop(FONT_NAME, None)
+    pdfmetrics._typefaces.pop(FONT_NAME, None)
+
+    data = ResumeData(
+        role_ru="Middle — Backend",
+        segment_ru="Профиль",
+        prof_score=10,
+        trust_score=20,
+        trust_legend_ru="Легенда",
+        skills=[],
+        projects=[],
+        contact_email=None,
+        generated_at=datetime.now(timezone.utc),
+    )
+    assert build_pdf(data).startswith(b"%PDF-")

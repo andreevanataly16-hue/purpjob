@@ -20,6 +20,7 @@ from app.db import get_db
 from app.models import ExportRequest, Statement, User
 from app.resume import (
     FONT_MISSING_RU,
+    FontMissing,
     ResumeData,
     build_pdf,
     pick_projects,
@@ -133,11 +134,13 @@ def export_pdf(
             f"В этой версии есть один формат: {', '.join(FORMATS)}.",
         )
 
-    if not register_font():
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, FONT_MISSING_RU)
-
     data = _collect(db, user, options.include_contacts)
-    content = build_pdf(data)
+    try:
+        content = build_pdf(data)
+    except FontMissing as missing:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, FONT_MISSING_RU
+        ) from missing
 
     # Запись только для самого кандидата: по ней он потом поймёт, каким был
     # профиль в момент выгрузки. Ни получателя, ни статуса доставки здесь нет
