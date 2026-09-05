@@ -860,3 +860,33 @@ def _forbid_growth_update(mapper, connection, target) -> None:  # noqa: ARG001
 @event.listens_for(ProfileGrowthEvent, "before_delete", propagate=True)
 def _forbid_growth_delete(mapper, connection, target) -> None:  # noqa: ARG001
     raise AppendOnlyViolation("Записи истории роста не удаляются.")
+
+
+class ExportRequest(Base):
+    """Факт выгрузки резюме (§4.1 модуля 9).
+
+    Запись существует только для самого кандидата: по ней он потом поймёт,
+    каким был профиль в момент выгрузки. Полей получателя, статуса доставки и
+    отслеживания здесь нет - и добавлять их нельзя: сам факт их появления был
+    бы первым шагом к рассылке, которую модуль запрещает.
+    """
+
+    __tablename__ = "export_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    format: Mapped[str] = mapped_column(String(10), default="pdf", nullable=False)
+    include_contacts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # На какие снимки опирался этот файл - чтобы кандидат мог сопоставить
+    # выгруженный документ с состоянием профиля.
+    prof_segment: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    prof_level: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    trust_score_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

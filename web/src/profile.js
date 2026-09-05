@@ -17,6 +17,7 @@ import {
 } from './xai.js'
 import { MODERATION_SKELETON, initModeration, renderModeration, resetModeration } from './moderation.js'
 import { GROWTH_SKELETON, initGrowth, renderGrowth, resetGrowth } from './growth.js'
+import { EXPORT_SKELETON, initExport, renderExport, resetExport } from './export.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -111,6 +112,8 @@ const SKELETON = `
   ${PROBE_SKELETON}
 
   ${NDA_SKELETON}
+
+  ${EXPORT_SKELETON}
 
   ${GROWTH_SKELETON}
 
@@ -415,6 +418,7 @@ function render(state) {
   renderProbe(state)
   renderNda(state)
   renderTrust(state)
+  renderExport(state)
   renderGrowth(state)
   renderXai(state)
   renderModeration(state)
@@ -699,6 +703,7 @@ export async function initProfile() {
     initProbe({ getState, root })
     initNda({ getState, root })
     initTrust({ getState, root })
+    initExport({ getState, root })
     initGrowth({ getState, root })
     initXai({ getState, root })
     initModeration({ getState, root })
@@ -714,6 +719,7 @@ export function resetProfile() {
   resetProbe()
   resetNda()
   resetTrust()
+  resetExport()
   resetGrowth()
   resetXai()
   resetModeration()

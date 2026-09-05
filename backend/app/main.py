@@ -5,7 +5,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db import Base, engine
-from app.routers import auth, growth, moderation, nda, probe, prof, profile, trust, xai
+from app.routers import (
+    auth,
+    export,
+    growth,
+    moderation,
+    nda,
+    probe,
+    prof,
+    profile,
+    trust,
+    xai,
+)
 
 # Импорт моделей нужен, чтобы они попали в метаданные Base до create_all.
 from app import models  # noqa: F401
@@ -34,6 +45,7 @@ app.include_router(trust.router)
 app.include_router(xai.router)
 app.include_router(moderation.router)
 app.include_router(growth.router)
+app.include_router(export.router)
 
 
 @app.get("/api/health", tags=["service"])
