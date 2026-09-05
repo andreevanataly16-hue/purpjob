@@ -57,7 +57,21 @@ EVENT_TYPES = (
 WHITE_SPOT_REMINDER = "white_spot_reminder"
 DECAY_WARNING = "competency_decay_warning"
 
-TRIGGER_TYPES = (WHITE_SPOT_REMINDER, DECAY_WARNING)
+# Эти два повода строит сам модуль 8. Остальные были помечены там как [MVP-1]:
+# им нужны живой поток вакансий и рекрутерская сторона, которых на тот момент
+# не существовало.
+OWN_TRIGGER_TYPES = (WHITE_SPOT_REMINDER, DECAY_WARNING)
+
+# Достроены позже, когда появилось чем их порождать: лента вакансий (модуль 11)
+# и первое действие рекрутера (модуль 13).
+NEW_MATCHING_VACANCY = "new_matching_vacancy"
+RECRUITER_INTEREST = "recruiter_interest"
+
+# Реестр всех поводов, какие в продукте есть. Он один на всех намеренно: пока
+# каждый модуль объявлял свой тип у себя, общий список переставал описывать
+# реальность - и обещание «у события уже есть дом» оказывалось слабее, чем
+# выглядело.
+TRIGGER_TYPES = OWN_TRIGGER_TYPES + (NEW_MATCHING_VACANCY, RECRUITER_INTEREST)
 
 PENDING = "pending"
 SENT = "sent"

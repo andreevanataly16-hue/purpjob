@@ -408,7 +408,7 @@ def _fire_recruiter_interest(db: Session, candidate: SeedCandidate) -> None:
     existing = db.scalar(
         select(ReturnTrigger).where(
             ReturnTrigger.user_id == candidate_user_id,
-            ReturnTrigger.trigger_type == "recruiter_interest",
+            ReturnTrigger.trigger_type == growth.RECRUITER_INTEREST,
             ReturnTrigger.related_ref == candidate.id,
         )
     )
@@ -418,7 +418,7 @@ def _fire_recruiter_interest(db: Session, candidate: SeedCandidate) -> None:
     db.add(
         ReturnTrigger(
             user_id=candidate_user_id,
-            trigger_type="recruiter_interest",
+            trigger_type=growth.RECRUITER_INTEREST,
             related_ref=candidate.id,
         )
     )

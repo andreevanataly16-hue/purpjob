@@ -44,7 +44,7 @@ router = APIRouter(prefix="/api/retention", tags=["retention"])
 # проверенное - держится отдельной константой, как и все прочие в проекте.
 MIN_MATCH_SCORE_TO_NOTIFY = 55
 
-NEW_MATCHING_VACANCY = "new_matching_vacancy"
+NEW_MATCHING_VACANCY = growth.NEW_MATCHING_VACANCY
 
 NOTE_RU = (
     "Мы сообщаем не про все вакансии, а про те, где ваш профиль уже близок. И показываем, "

@@ -437,9 +437,14 @@ def test_refresh_of_an_unknown_competency_is_not_found(signed_client):
 # --- поводы вернуться -----------------------------------------------------
 
 
-def test_only_two_trigger_types_exist():
-    """FR5.1: никаких «подходящих вакансий» и «интереса рекрутера» здесь нет."""
-    assert growth.TRIGGER_TYPES == (growth.WHITE_SPOT_REMINDER, growth.DECAY_WARNING)
+def test_module_8_builds_exactly_two_trigger_types():
+    """FR5.1: «подходящая вакансия» и «интерес рекрутера» - не этот модуль.
+
+    Позже их достроили модули 11 и 13, когда появилось чем их порождать, и в
+    общем реестре они есть. Но производителей у модуля 8 по-прежнему два: это
+    его собственная граница, и стирать её не за чем.
+    """
+    assert growth.OWN_TRIGGER_TYPES == (growth.WHITE_SPOT_REMINDER, growth.DECAY_WARNING)
 
     from app.routers import growth as growth_router
 
