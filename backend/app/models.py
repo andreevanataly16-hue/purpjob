@@ -237,6 +237,20 @@ class VisibilityState(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     mode: Mapped[str] = mapped_column(String(20), default="hidden", nullable=False)
+
+    # Модуль 12: можно ли рекрутеру раскрывать сами доказательства. Это про
+    # глубину, а не про то, виден ли профиль вообще - два разных решения.
+    consent_for_recruiter_view: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+    # Модуль 13: отказ от поэтапного раскрытия. Выключено у всех по умолчанию -
+    # поэтапность и есть механизм против предвзятости, а это осознанный выход
+    # из него, а не настройка «по вкусу».
+    allow_immediate_identity_reveal: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
@@ -759,6 +773,53 @@ class VacancyMatchState(Base):
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class RevealState(Base):
+    """До какого этапа рекрутер дошёл по конкретному кандидату (§4.1 модуля 13).
+
+    Привязка к паре «рекрутер + кандидат», а не к вакансии: раскрытая личность
+    не закрывается обратно, если тот же рекрутер найдёт того же человека под
+    другой вакансией. И этап одного рекрутера ничего не значит для другого.
+
+    Слой чисто отображающий: никакие данные модулей 3/6/10/12 отсюда не
+    меняются, меняется только то, что из них показано.
+    """
+
+    __tablename__ = "reveal_states"
+    __table_args__ = (
+        UniqueConstraint("recruiter_user_id", "candidate_id", name="uq_reveal_recruiter_candidate"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recruiter_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    candidate_id: Mapped[str] = mapped_column(String(60), nullable=False)
+
+    current_stage: Mapped[str] = mapped_column(
+        String(30), default="stage1_professional", nullable=False
+    )
+    advance_trigger: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+    # Третий этап требует ДВУХ решений: рекрутер попросил и кандидат разрешил.
+    # Одного действия рекрутера здесь недостаточно - в отличие от второго этапа.
+    contact_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    candidate_contact_opt_in: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+    stage2_advanced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    stage3_advanced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
 

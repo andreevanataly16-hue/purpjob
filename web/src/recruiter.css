@@ -147,3 +147,25 @@
 .rec-table th { color: var(--muted); font-weight: 600; }
 .rec-table td:first-child { color: var(--muted); }
 .rec-gaps { color: #ffc47a; }
+
+/* Поэтапное раскрытие (модуль 13). */
+.rec-avatar.anon { background: var(--line); color: var(--muted); }
+
+.rec-stage {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(160, 107, 255, .3);
+  border-radius: 10px;
+  background: rgba(160, 107, 255, .07);
+  font-size: 12.5px;
+}
+.rec-stage.revealed {
+  border-color: var(--line);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rec-stage p { margin: 0 0 10px; color: var(--muted); line-height: 1.5; }
+.rec-stage-note { color: var(--muted); }

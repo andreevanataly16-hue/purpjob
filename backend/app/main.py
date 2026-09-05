@@ -16,6 +16,7 @@ from app.routers import (
     profile,
     recruiter,
     retention,
+    reveal,
     trust,
     vacancies,
     xai,
@@ -52,6 +53,7 @@ app.include_router(export.router)
 app.include_router(vacancies.router)
 app.include_router(retention.router)
 app.include_router(recruiter.router)
+app.include_router(reveal.router)
 
 
 @app.get("/api/health", tags=["service"])

@@ -232,3 +232,98 @@ def trust_components(candidate: SeedCandidate) -> list[ComponentScore]:
 def trust_overall(candidate: SeedCandidate) -> int:
     return overall(trust_components(candidate))
 
+
+# --- живой профиль как участник пула (модуль 13) --------------------------
+#
+# Модуль 12 строился на рукописном наборе именно потому, что настоящих
+# кандидатов не было. Теперь один есть - тот, кто сидит в этом прототипе. Без
+# него у модуля 13 не было бы чего показывать кандидатской стороне: «кто
+# интересуется вашим профилем» про синтетическую запись бессмысленно, а повод
+# «рекрутер заинтересовался» из модуля 8 так и остался бы без производителя.
+
+LIVE_PREFIX = "live_"
+
+
+def live_candidate(db, user) -> SeedCandidate | None:
+    """Профиль вошедшего кандидата в той же форме, что и записи набора.
+
+    Своего расчёта опять не появляется: дальше эту запись считают те же
+    функции, что и синтетические.
+    """
+    from sqlalchemy import select
+
+    from app.models import ProbeAnswer, ProbeQuestion, ProfRole, Statement, VisibilityState
+
+    roles = [
+        role.level
+        for role in db.scalars(select(ProfRole).where(ProfRole.user_id == user.id))
+    ]
+    if not roles:
+        return None
+
+    state = db.get(VisibilityState, user.id)
+    mode = state.mode if state else HIDDEN
+
+    statements = []
+    for item in db.scalars(
+        select(Statement).where(Statement.user_id == user.id).order_by(Statement.id)
+    ):
+        statements.append(
+            SeedStatement(
+                skill_name=item.skill_name,
+                skill_name_ru=item.skill_name_ru,
+                evidence=tuple(
+                    SeedEvidence(
+                        type=entry.type,
+                        source_category=entry.source_category,
+                        status=entry.status,
+                    )
+                    for entry in item.evidence
+                ),
+            )
+        )
+    if not statements:
+        return None
+
+    answers = []
+    for index, answer in enumerate(
+        db.scalars(select(ProbeAnswer).where(ProbeAnswer.user_id == user.id)), start=1
+    ):
+        question = db.get(ProbeQuestion, answer.question_id)
+        answers.append(
+            ProbeFacts(
+                answer_id=f"{LIVE_PREFIX}a{index}",
+                competency_id=question.competency_id if question else "",
+                understanding_signal=answer.understanding_signal,
+                paste_attempts_blocked=answer.paste_attempts_blocked,
+                had_follow_up=False,
+                resolved_after_follow_up=False,
+            )
+        )
+
+    # Имя нигде не собирается (см. модуль 9), поэтому подписью служит адрес.
+    name = user.email.split("@")[0]
+    return SeedCandidate(
+        id=f"{LIVE_PREFIX}{user.id}",
+        display_name=name,
+        photo_label=name[:2].upper(),
+        visibility_mode=mode,
+        consent_for_recruiter_view=bool(state and state.consent_for_recruiter_view),
+        levels=tuple(roles),
+        statements=tuple(statements),
+        probe_answers=tuple(answers),
+        nda_confirmations=(),
+    )
+
+
+def pool_for(db, user) -> list[SeedCandidate]:
+    """Видимый пул вместе с живым профилем, если он открыт рынку."""
+    live = live_candidate(db, user)
+    found = visible_pool()
+    if live is not None and live.visibility_mode == VISIBLE:
+        found = [live, *found]
+    return found
+
+
+def find_visible(db, user, candidate_id: str) -> SeedCandidate | None:
+    return next((item for item in pool_for(db, user) if item.id == candidate_id), None)

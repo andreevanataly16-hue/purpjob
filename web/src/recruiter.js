@@ -64,7 +64,7 @@ function candidateRow(item) {
   return `
     <div class="rec-card ${ui.open === item.candidate_id ? 'open' : ''}">
       <div class="rec-card-head">
-        <span class="rec-avatar">${escape(item.photo_label)}</span>
+        <span class="rec-avatar ${item.identity_revealed ? '' : 'anon'}">${escape(item.photo_label)}</span>
         <div class="rec-who">
           <b>${escape(item.display_name)}</b>
           <span>${item.levels.map(escape).join(', ')}</span>
@@ -100,6 +100,23 @@ function candidateRow(item) {
 /* ---------- подробности ---------- */
 
 function detailBody(detail) {
+  // Раскрытие личности — отдельное осознанное действие, а не «развернуть».
+  // Поэтому это заметная кнопка с прямой формулировкой, а не мелкая ссылка.
+  const stage = detail.identity_revealed
+    ? `<div class="rec-stage revealed">
+         Имя и фотография открыты для вас.
+         ${detail.contacts_visible
+           ? '<span>Контакты открыты — кандидат согласился.</span>'
+           : `<button type="button" class="ghost" data-act="rec-contacts"
+                data-id="${escape(detail.candidate_id)}">${escape(detail.contact_label_ru)}</button>
+              <span class="rec-stage-note">${escape(detail.contact_note_ru)}</span>`}
+       </div>`
+    : `<div class="rec-stage">
+         <p>${escape(detail.stage_note_ru)}</p>
+         <button type="button" class="action" data-act="rec-reveal"
+           data-id="${escape(detail.candidate_id)}">${escape(detail.advance_label_ru)}</button>
+       </div>`
+
   const requirement = (item, covered) => `
     <div class="rec-req ${covered ? 'covered' : 'uncovered'}">
       <span class="rec-req-label">${escape(item.label_ru)}</span>
@@ -108,6 +125,7 @@ function detailBody(detail) {
     </div>`
 
   return `
+    ${stage}
     <h4 class="rec-h">Требования вакансии «${escape(detail.vacancy_title_ru)}»</h4>
     ${detail.covered.map(item => requirement(item, true)).join('')}
     ${detail.uncovered.map(item => requirement(item, false)).join('')}
@@ -333,6 +351,21 @@ async function onEvent(event) {
     ui.detail = null
     renderRecruiter()
     if (ui.open) await loadDetail(ui.open)
+    return
+  }
+
+  if (act === 'rec-reveal' || act === 'rec-contacts') {
+    const path = act === 'rec-reveal' ? 'reveal' : 'request-contacts'
+    const result = await api(
+      `/api/recruiter/candidates/${id}/${path}?vacancy_id=${encodeURIComponent(ui.vacancyId)}`,
+      { method: 'POST' }
+    )
+    if (!result.ok) {
+      message(result.payload?.detail || 'Не удалось выполнить действие.')
+      return
+    }
+    ui.detail = result.payload
+    await load()
     return
   }
 

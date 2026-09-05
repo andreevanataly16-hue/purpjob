@@ -21,6 +21,9 @@ class CandidateCardOut(BaseModel):
     display_name: str
     photo_label: str
     levels: list[str]
+    # Модуль 13: на первом этапе вместо имени стоит стабильная метка, а не
+    # пустое место — видно, что скрыто нарочно.
+    identity_revealed: bool = True
     prof_index: int = Field(ge=0, le=100)
     prof_level: str
     trust_score: int = Field(ge=0, le=100)
@@ -67,6 +70,12 @@ class RequirementOut(BaseModel):
 class CandidateDetailOut(CandidateCardOut):
     vacancy_id: str
     vacancy_title_ru: str
+    current_stage: str
+    stage_note_ru: str
+    advance_label_ru: str
+    contact_label_ru: str
+    contacts_visible: bool
+    contact_note_ru: str
     prof_components: list[ProfComponentOut]
     radar_points: list[RadarPointOut]
     trust_components: list[TrustComponentOut]
@@ -97,3 +106,26 @@ class CompareOut(BaseModel):
     # Одинаковая структура на всех: своих полей у отдельного кандидата нет,
     # иначе сравнивать было бы нечего (FR5.1).
     candidates: list[CandidateDetailOut]
+
+
+class RecruiterInterestOut(BaseModel):
+    """Что кандидат видит про интерес к себе (модуль 13, US3).
+
+    Это прозрачность, а не право вето: этап уже наступивший кандидат не
+    отменяет. Отсюда и набор полей — кто, на каком этапе, и просил ли контакты.
+    """
+
+    recruiter_label: str
+    current_stage: str
+    stage_ru: str
+    contact_requested: bool
+    contact_opt_in: bool
+    created_at: datetime
+
+
+class RevealOut(BaseModel):
+    note_ru: str
+    opt_out_label_ru: str
+    allow_immediate_identity_reveal: bool
+    consent_for_recruiter_view: bool
+    interests: list[RecruiterInterestOut]

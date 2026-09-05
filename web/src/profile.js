@@ -17,6 +17,7 @@ import {
 } from './xai.js'
 import { MODERATION_SKELETON, initModeration, renderModeration, resetModeration } from './moderation.js'
 import { RECRUITER_SKELETON, initRecruiter, renderRecruiter, resetRecruiter } from './recruiter.js'
+import { REVEAL_SKELETON, initReveal, renderReveal, resetReveal } from './reveal.js'
 import { GROWTH_SKELETON, initGrowth, renderGrowth, resetGrowth } from './growth.js'
 import { EXPORT_SKELETON, initExport, renderExport, resetExport } from './export.js'
 import {
@@ -213,6 +214,8 @@ const SKELETON = `
     </div>
     <p class="msg" id="map-msg"></p>
   </section>
+
+  ${REVEAL_SKELETON}
 
   ${RECRUITER_SKELETON}
 
@@ -434,6 +437,7 @@ function render(state) {
   renderExport(state)
   renderGrowth(state)
   renderXai(state)
+  renderReveal()
   renderRecruiter()
   renderModeration(state)
 }
@@ -733,6 +737,7 @@ export async function initProfile() {
     initExport({ getState, root })
     initGrowth({ getState, root })
     initXai({ getState, root })
+    initReveal({ root })
     initRecruiter({ root })
     initModeration({ getState, root })
   }
@@ -751,6 +756,7 @@ export function resetProfile() {
   resetExport()
   resetGrowth()
   resetXai()
+  resetReveal()
   resetRecruiter()
   resetModeration()
   ui.parsed = null

@@ -1,0 +1,32 @@
+/* Кто интересуется профилем: спокойный список, а не уведомления. */
+
+.reveal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  margin-bottom: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+  font-size: 13px;
+}
+.reveal-who { font-weight: 600; }
+.reveal-stage { color: var(--muted); flex: 1; min-width: 180px; }
+
+.reveal-settings {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.reveal-settings label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.reveal-settings input { width: 16px; height: 16px; accent-color: var(--purple); }
+.reveal-settings .sub { margin: 6px 0 16px 25px; }
+.reveal-settings .sub:last-child { margin-bottom: 0; }
