@@ -71,29 +71,34 @@ def _statement_views(db: Session, user: User) -> list[StatementView]:
     return views
 
 
-def _apply_freshness(snapshot: dict, weights: dict[str, float]) -> dict:
-    """Множитель актуальности из модуля 8 - единственное место его чтения (§0).
+def _mark_freshness(snapshot: dict, weights: dict[str, float]) -> dict:
+    """Отмечает давность подтверждения, НЕ трогая балл.
 
-    Устаревание влияет только на то, насколько компетенция считается СЕЙЧАС для
-    соответствия роли. Статус компетенции и доказательства не трогаются вообще:
-    подтверждённое остаётся подтверждённым, и это видно на экране. В Trust Score
-    множитель не попадает никогда - там речь о достоверности сведений, а она от
-    времени не портится.
+    Раньше здесь стоял понижающий множитель: компетенция, подтверждённая больше
+    месяца назад, считалась в индексе с весом меньше единицы. Это убрано.
+
+    Почему. PROF - это покрытие требований эталона доказательствами. Прошедшие
+    тридцать дней не делают доказательство менее доказательством: репозиторий
+    никуда не делся, задача была решена, разбор под NDA состоялся. Понижать
+    балл за возраст записи означало бы наказывать за паузу, а не мерить опыт -
+    и это прямо расходится с принципом «оценка по доказательствам».
+
+    Отдельно про кнопку: нажатие «Актуализировать» не было новым
+    доказательством и возвращало полный вес - то есть балл двигался от
+    действия, за которым ничего не стоит. Такого механизма быть не должно.
+
+    Что осталось: сама дата подтверждения и признак давности. Они показываются
+    кандидату как повод вернуться и пригодятся, когда появится обоснованная
+    модель актуальности (Skill Velocity). Но на балл не влияют ничем.
     """
     if not weights:
         return snapshot
 
     for component in snapshot["components"]:
-        multiplier = weights.get(component["competency_id"], 1.0)
-        component["market_weight_multiplier"] = multiplier
-        if multiplier < 1.0:
-            component["score_contribution"] = round(
-                component["score_contribution"] * multiplier, 6
-            )
+        # Значение остаётся в ответе для экрана и будущей модели, но в
+        # `score_contribution` не входит: множителя больше нет.
+        component["market_weight_multiplier"] = weights.get(component["competency_id"], 1.0)
 
-    snapshot["overall_score"] = round(
-        sum(item["score_contribution"] for item in snapshot["components"]) * 100
-    )
     return snapshot
 
 
@@ -171,7 +176,7 @@ def _payload(db: Session, user: User) -> ProfOut:
             "available_levels": list(LEVELS),
             "max_roles": MAX_ROLES,
             "snapshots": [
-                _apply_freshness(
+                _mark_freshness(
                     _apply_moderation(compute_snapshot(get_profile(role.level), views), applied),
                     weights,
                 )

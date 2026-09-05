@@ -369,8 +369,17 @@ def test_decay_never_touches_the_confirmed_status_itself(signed_client):
     assert after == before
 
 
-def test_decay_lowers_prof_index_only(signed_client):
-    """§0: множитель виден в индексе и не виден в Trust Score."""
+def test_time_alone_lowers_neither_prof_nor_trust(signed_client):
+    """Давность подтверждения больше не понижает ничего.
+
+    Раньше этот тест проверял обратное: множитель актуальности уменьшал вклад
+    компетенции в PROF.индекс. Гипотеза снята в стабилизационном спринте -
+    прошедшие тридцать дней не делают доказательство менее доказательством, а
+    балл, падающий за паузу, это наказание, а не измерение опыта.
+
+    Сам признак давности остался и показывается кандидату как повод вернуться;
+    проверяется здесь же, что он не исчез вместе с понижением.
+    """
     setup_candidate(signed_client)
     strengthen(signed_client, statement_ids(signed_client))
     signed_client.get(GROWTH)
@@ -386,9 +395,13 @@ def test_decay_lowers_prof_index_only(signed_client):
     prof_after = signed_client.get(PROF).json()["snapshots"][0]["overall_score"]
     trust_after = signed_client.get(TRUST).json()
 
-    assert prof_after < prof_before
+    assert prof_after == prof_before
     assert trust_after["overall_score"] == trust_before["overall_score"]
     assert trust_after["components"] == trust_before["components"]
+
+    # Признак давности при этом виден - убрано только влияние на балл.
+    freshness = signed_client.get(GROWTH).json()["freshness"]
+    assert any(item["status"] == growth.STALE for item in freshness)
 
 
 def test_trust_never_reads_the_freshness_multiplier():
@@ -403,8 +416,14 @@ def test_trust_never_reads_the_freshness_multiplier():
         assert "freshness" not in source.lower()
 
 
-def test_refresh_restores_full_weight_without_reproving(signed_client):
-    """FR5.3: одно нажатие, и доказывать заново ничего не нужно."""
+def test_refresh_updates_the_date_and_nothing_else(signed_client):
+    """FR5.3 в новом прочтении: кнопка не создаёт доказательств и не двигает балл.
+
+    Раньше «Актуализировать» возвращало полный вес компетенции. Это означало,
+    что балл двигается от нажатия кнопки, за которым не стоит ничего нового, -
+    и вместе с понижением за давность механика снята. Кнопка осталась отметкой
+    «я это ещё делаю», меняющей только дату.
+    """
     setup_candidate(signed_client)
     strengthen(signed_client, statement_ids(signed_client))
     signed_client.get(GROWTH)
@@ -415,7 +434,7 @@ def test_refresh_restores_full_weight_without_reproving(signed_client):
     assert stale and stale[0]["status"] == growth.STALE
     competency_id = stale[0]["competency_id"]
     evidence_before = len(signed_client.get(PROFILE).json()["evidence"])
-    lowered = signed_client.get(PROF).json()["snapshots"][0]["overall_score"]
+    prof_before = signed_client.get(PROF).json()["snapshots"][0]["overall_score"]
 
     payload = signed_client.post(f"{GROWTH}/freshness/{competency_id}/refresh").json()
 
@@ -423,9 +442,10 @@ def test_refresh_restores_full_weight_without_reproving(signed_client):
         item for item in payload["freshness"] if item["competency_id"] == competency_id
     )
     assert refreshed["status"] == growth.FRESH
-    assert refreshed["market_weight_multiplier"] == 1.0
+    # Доказательств не прибавилось: нажатие кнопки ничего не доказывает.
     assert len(signed_client.get(PROFILE).json()["evidence"]) == evidence_before
-    assert signed_client.get(PROF).json()["snapshots"][0]["overall_score"] > lowered
+    # И балл не сдвинулся - ни вниз до этого, ни вверх сейчас.
+    assert signed_client.get(PROF).json()["snapshots"][0]["overall_score"] == prof_before
 
 
 def test_refresh_of_an_unknown_competency_is_not_found(signed_client):
@@ -526,7 +546,8 @@ def test_dismissing_a_reminder_is_not_an_action(signed_client):
     assert after["stats"]["triggers_acted_upon"] == 0
 
 
-def test_decay_warning_offers_refresh_not_reproof(signed_client):
+def test_decay_warning_promises_no_penalty(signed_client):
+    """Напоминание не должно обещать наказание, которого не будет."""
     setup_candidate(signed_client)
     strengthen(signed_client, statement_ids(signed_client))
     signed_client.get(GROWTH)
@@ -538,30 +559,51 @@ def test_decay_warning_offers_refresh_not_reproof(signed_client):
         item for item in payload["triggers"] if item["trigger_type"] == growth.DECAY_WARNING
     ]
     assert warnings
-    assert "вернёт полный вес" in warnings[0]["text_ru"]
+    assert "не влияет" in warnings[0]["text_ru"].lower()
+    for forbidden in ("понизим", "снизим", "потеряете"):
+        assert forbidden not in warnings[0]["text_ru"].lower()
 
 
 # --- чистые функции устаревания ------------------------------------------
 
 
 def test_freshness_thresholds_are_named_constants():
+    """Пороги давности остались, а понижающего множителя больше нет.
+
+    Раньше здесь проверялось, что множитель падает со временем. Теперь
+    проверяется обратное: статус давности различается, а вес - нет. Модель
+    актуальности сохранена под будущую калибровку, но балл она не трогает.
+    """
     now = datetime.now(timezone.utc)
 
     fresh = growth.freshness_for("x", now)
     decaying = growth.freshness_for("x", now - timedelta(days=growth.DECAY_COUNTDOWN_DAYS))
     stale = growth.freshness_for("x", now - timedelta(days=growth.STALE_AFTER_DAYS))
 
-    assert fresh.status == growth.FRESH and fresh.multiplier == 1.0
-    assert decaying.status == growth.DECAYING and decaying.multiplier < 1.0
-    assert stale.status == growth.STALE and stale.multiplier < decaying.multiplier
+    assert fresh.status == growth.FRESH
+    assert decaying.status == growth.DECAYING
+    assert stale.status == growth.STALE
+
+    assert {fresh.multiplier, decaying.multiplier, stale.multiplier} == {1.0}
 
 
-def test_multiplier_never_reaches_zero():
-    """Устаревание понижает вес, но не стирает подтверждение."""
-    assert all(value > 0 for value in growth.MULTIPLIER.values())
+def test_multiplier_is_neutral_in_this_phase():
+    """Понижения нет вообще: все три значения - единица.
+
+    Словарь оставлен под будущую модель актуальности, поэтому тест следит
+    именно за тем, чтобы понижение не вернулось тихой правкой одного числа.
+    """
+    assert set(growth.MULTIPLIER.values()) == {1.0}
 
 
-def test_decay_copy_matches_the_master_document():
-    text = growth.DECAY_TEXT_TEMPLATE_RU.format(days=3, name="Проектирование REST API")
-    assert text.startswith("Рынок меняется —")
-    assert "понизим вес компетенции" in text
+def test_decay_copy_no_longer_threatens_a_penalty():
+    """Осознанное отступление от формулировки мастер-документа.
+
+    Исходный текст обещал: «через 3 дня мы понизим вес компетенции». Понижения
+    в продукте больше нет, и оставить обещание наказания, которого не будет, -
+    хуже, чем отступить от исходной формулировки. Расхождение отмечено в README.
+    """
+    text = growth.DECAY_TEXT_TEMPLATE_RU.format(name="Проектирование REST API")
+
+    assert "понизим" not in text
+    assert "на балл это не влияет" in text.lower()
