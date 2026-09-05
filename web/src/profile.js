@@ -20,6 +20,7 @@ import { RECRUITER_SKELETON, initRecruiter, renderRecruiter, resetRecruiter } fr
 import {
   CALIBRATION_SKELETON, initCalibration, renderCalibration, resetCalibration
 } from './calibration.js'
+import { PLUGIN_SKELETON, initPlugin, renderPlugin, resetPlugin } from './plugin.js'
 import { REVEAL_SKELETON, initReveal, renderReveal, resetReveal } from './reveal.js'
 import { GROWTH_SKELETON, initGrowth, renderGrowth, resetGrowth } from './growth.js'
 import { EXPORT_SKELETON, initExport, renderExport, resetExport } from './export.js'
@@ -221,6 +222,8 @@ const SKELETON = `
   ${REVEAL_SKELETON}
 
   ${RECRUITER_SKELETON}
+
+  ${PLUGIN_SKELETON}
 
   ${CALIBRATION_SKELETON}
 
@@ -444,6 +447,7 @@ function render(state) {
   renderXai(state)
   renderReveal()
   renderRecruiter()
+  renderPlugin()
   renderCalibration()
   renderModeration(state)
 }
@@ -745,6 +749,7 @@ export async function initProfile() {
     initXai({ getState, root })
     initReveal({ root })
     initRecruiter({ root })
+    initPlugin({ root })
     initCalibration({ root, rerender: renderRecruiter })
     initModeration({ getState, root })
   }
@@ -765,6 +770,7 @@ export function resetProfile() {
   resetXai()
   resetReveal()
   resetRecruiter()
+  resetPlugin()
   resetCalibration()
   resetModeration()
   ui.parsed = null

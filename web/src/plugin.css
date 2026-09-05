@@ -1,0 +1,113 @@
+/* Витрина виджета плагина: то, что рекрутер видит поверх чужой страницы. */
+
+.plug-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.plug-privacy {
+  margin: 16px 0 14px;
+  padding: 12px 15px;
+  border: 1px solid rgba(120, 220, 160, .3);
+  border-radius: 10px;
+  background: rgba(120, 220, 160, .06);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.plug-kind { display: flex; gap: 18px; margin-bottom: 10px; font-size: 13.5px; }
+.plug-kind label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.plug-kind input { accent-color: var(--purple); }
+
+#plug-text { min-height: 110px; }
+
+.plug-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 12px; }
+
+/* Честный светофор */
+.traffic {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--field);
+}
+.traffic-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.traffic.verified { border-color: rgba(120, 220, 160, .45); }
+.traffic.verified .traffic-dot { background: var(--ok); }
+.traffic.preliminary { border-color: rgba(255, 196, 122, .45); }
+.traffic.preliminary .traffic-dot { background: #ffc47a; }
+.traffic.needs_verification .traffic-dot { background: #7a7a88; }
+.traffic-note { font-size: 12px; color: var(--muted); }
+.traffic p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.traffic-link { color: var(--purple-soft) !important; }
+
+/* Разбор резюме */
+.plug-analysis { margin-top: 16px; }
+.plug-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.plug-metric.small { margin-top: 16px; }
+.plug-value { font-size: 32px; font-weight: 700; line-height: 1; color: #ffc47a; }
+.plug-metric.small .plug-value { font-size: 22px; color: var(--purple-soft); }
+.plug-of { font-size: 13px; color: var(--muted); }
+
+.plug-reasons { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+.plug-reasons li { margin-bottom: 4px; }
+
+.plug-h { margin: 18px 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.plug-anomaly {
+  margin: 0 0 7px;
+  padding: 10px 13px;
+  border-left: 2px solid rgba(255, 196, 122, .5);
+  border-radius: 0 9px 9px 0;
+  font-size: 12.5px;
+}
+.plug-none { font-size: 12.5px; color: var(--muted); }
+
+.plug-caveat {
+  margin: 16px 0 0;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Разбор вакансии */
+.plug-requirements { margin-top: 16px; }
+.plug-req {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--field);
+}
+.plug-req.mandatory { border-color: var(--line-strong); }
+.plug-req-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.plug-hint { margin: 7px 0 0; font-size: 12.5px; color: var(--muted); }
+.plug-basis { margin: 5px 0 0; font-size: 12px; color: var(--muted); font-style: italic; }
+
+.plug-invite { margin-top: 18px; }
+.plug-invite textarea { min-height: 90px; }
+
+.plug-lens,
+.plug-honesty {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.plug-honesty { font-weight: 600; color: var(--text); }

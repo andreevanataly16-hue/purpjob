@@ -1131,3 +1131,32 @@ def _forbid_calibration_update(mapper, connection, target) -> None:  # noqa: ARG
 @event.listens_for(CalibrationConstantChangeLog, "before_delete", propagate=True)
 def _forbid_calibration_delete(mapper, connection, target) -> None:  # noqa: ARG001
     raise AppendOnlyViolation("Записи журнала калибровки не удаляются.")
+
+
+class VerificationInvite(Base):
+    """Приглашение кандидату подтвердить профиль (§4.5 модуля 15).
+
+    Записывается только сам факт: кто создал и когда. Ни адресата, ни канала,
+    ни статуса доставки - потому что отправки нет. Рекрутер копирует ссылку и
+    отправляет сам, своим каналом; то же правило, что у экспорта в модуле 9,
+    только с другой стороны.
+
+    Кандидат, пришедший по ссылке, проходит обычный вход и обычное наполнение
+    профиля: этот модуль добавляет новую дверь, а не короткий путь.
+    """
+
+    __tablename__ = "verification_invites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    recruiter_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    note_ru: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20), default="generated", nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

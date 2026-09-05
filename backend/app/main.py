@@ -17,6 +17,7 @@ from app.routers import (
     recruiter,
     retention,
     calibration,
+    plugin,
     reveal,
     trust,
     vacancies,
@@ -56,6 +57,7 @@ app.include_router(retention.router)
 app.include_router(recruiter.router)
 app.include_router(reveal.router)
 app.include_router(calibration.router)
+app.include_router(plugin.router)
 
 
 @app.get("/api/health", tags=["service"])
