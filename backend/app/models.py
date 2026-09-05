@@ -714,6 +714,54 @@ class AnomalyFlag(Base):
     )
 
 
+class VacancyCheckpoint(Base):
+    """Отметка «до какого момента вакансии уже видели» (§4.3 модуля 11).
+
+    Замена живому парсингу на эту фазу. Когда парсинг появится, он станет
+    вторым производителем того же события, а эта отметка просто уйдёт - ниже
+    по течению не меняется ничего.
+    """
+
+    __tablename__ = "vacancy_checkpoints"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    last_checked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VacancyMatchState(Base):
+    """Каким было совпадение с вакансией в прошлый раз (модуль 11, US4).
+
+    Нужна ровно для одного: понять, что закрытый пробел помог не только той
+    вакансии, ради которой кандидат вернулся. Без записи прошлого состояния
+    «стало лучше ещё в двух местах» посчитать не из чего - совпадение нигде
+    не хранится, оно пересчитывается.
+    """
+
+    __tablename__ = "vacancy_match_states"
+    __table_args__ = (
+        UniqueConstraint("user_id", "vacancy_id", name="uq_match_state_user_vacancy"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    vacancy_id: Mapped[str] = mapped_column(String(40), nullable=False)
+
+    match_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Список закрытых требований через запятую: сравнивать нужно состав, а не
+    # только число - балл может не измениться, а требование закрыться.
+    covered_requirement_ids: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 # --- журнал только на добавление (FR5.1) ---------------------------------
 #
 # Запрет держится на уровне кода, а не договорённости: любая попытка изменить
@@ -839,6 +887,12 @@ class ReturnTrigger(Base):
 
     trigger_type: Mapped[str] = mapped_column(String(40), nullable=False)
     related_ref: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+
+    # Модуль 11, только для повода «появилась подходящая вакансия». Совпадение
+    # записывается на момент срабатывания: обещание «62%» должно остаться
+    # верным, даже если профиль с тех пор изменился и балл стал другим.
+    match_score_at_detection: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    explanation_ref: Mapped[str | None] = mapped_column(String(160), nullable=True)
 
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
 

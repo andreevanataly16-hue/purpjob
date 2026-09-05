@@ -38,6 +38,9 @@ TRUST_INCREASED = "trust_component_increased"
 ROLE_ADDED = "role_added"
 DISPUTE_RESOLVED = "dispute_resolved_in_favor"
 REUSED_ACROSS_ROLE = "competency_reused_across_role"
+# Модуль 11: подтверждение помогло не только той вакансии, ради которой
+# кандидат вернулся. Ради этого события модуль 11 и существует.
+MATCH_ACROSS_VACANCIES = "match_score_increased_across_vacancies"
 
 EVENT_TYPES = (
     EVIDENCE_ADDED,
@@ -46,6 +49,7 @@ EVENT_TYPES = (
     ROLE_ADDED,
     DISPUTE_RESOLVED,
     REUSED_ACROSS_ROLE,
+    MATCH_ACROSS_VACANCIES,
 )
 
 # --- поводы вернуться (§4.4) ---------------------------------------------
@@ -178,6 +182,8 @@ def describe(event_type: str, subject_ru: str, from_value: str | None, to_value:
         return f"Добавлена целевая роль: {subject_ru}."
     if event_type == DISPUTE_RESOLVED:
         return f"Спор решён в вашу пользу: {subject_ru} — {from_value} → {to_value}."
+    if event_type == MATCH_ACROSS_VACANCIES:
+        return f"Подтверждение пригодилось ещё в {to_value} вакансиях вашей ленты."
     if event_type == REUSED_ACROSS_ROLE:
         return (
             f"Компетенция «{subject_ru}» уже была подтверждена — переносим в новую роль "

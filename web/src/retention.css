@@ -1,0 +1,59 @@
+/* Поводы вернуться: подходящая вакансия. */
+
+.ret-trigger {
+  padding: 15px 17px;
+  margin-bottom: 9px;
+  border: 1px solid rgba(160, 107, 255, .32);
+  border-radius: 12px;
+  background: rgba(160, 107, 255, .07);
+}
+
+.ret-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ret-head b { font-size: 15px; display: block; }
+.ret-company { font-size: 12.5px; color: var(--muted); }
+
+.ret-score { text-align: right; }
+.ret-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--purple-soft);
+}
+.ret-moved { display: block; font-size: 11.5px; color: var(--ok); margin-top: 3px; }
+
+.ret-why { margin: 11px 0 0; font-size: 13.5px; line-height: 1.5; }
+
+.ret-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+
+.ret-cross {
+  margin-top: 12px;
+  padding: 12px 15px;
+  border-left: 2px solid var(--ok);
+  border-radius: 0 10px 10px 0;
+  background: rgba(120, 220, 160, .07);
+}
+.ret-cross p { margin: 0 0 6px; font-size: 13px; }
+.ret-cross p:last-child { margin-bottom: 0; }
+
+.ret-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+}

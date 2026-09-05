@@ -25,12 +25,15 @@ PROF_COMPETENCY_STATUS = "prof_competency_status"
 TRUST_COMPONENT = "trust_component"
 CONTRADICTION_FINDING = "contradiction_finding"
 PROBE_QUESTION_REASON = "probe_question_reason"
+# Модуль 11: почему система решила, что эта вакансия вам подходит.
+VACANCY_MATCH = "vacancy_match"
 
 SUBJECT_TYPES = (
     PROF_COMPETENCY_STATUS,
     TRUST_COMPONENT,
     CONTRADICTION_FINDING,
     PROBE_QUESTION_REASON,
+    VACANCY_MATCH,
 )
 
 SUBJECT_TYPE_RU = {
@@ -38,6 +41,7 @@ SUBJECT_TYPE_RU = {
     TRUST_COMPONENT: "Компонент Trust Score",
     CONTRADICTION_FINDING: "Нестыковка в профиле",
     PROBE_QUESTION_REASON: "Почему задан этот вопрос",
+    VACANCY_MATCH: "Почему эта вакансия вам подходит",
 }
 
 MODULE_3 = "module_3"
@@ -93,6 +97,10 @@ def contradiction_explanation_id(case_public_id: str) -> str:
 
 def probe_explanation_id(question_public_id: str) -> str:
     return f"expl_probe_{question_public_id}"
+
+
+def vacancy_explanation_id(vacancy_id: str) -> str:
+    return f"expl_vacancy_{vacancy_id}"
 
 
 # --- правила, которым обязано подчиняться любое объяснение ----------------

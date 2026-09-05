@@ -21,10 +21,13 @@ let disputes = null
 let moderation = null
 let growth = null
 let vacancies = null
+let retention = null
 const listeners = new Set()
 
 function snapshot() {
-  return { ...profile, prof, probe, nda, trust, disputes, moderation, growth, vacancies }
+  return {
+    ...profile, prof, probe, nda, trust, disputes, moderation, growth, vacancies, retention
+  }
 }
 
 export function getState() {
@@ -52,6 +55,7 @@ export function clearProfile() {
   moderation = null
   growth = null
   vacancies = null
+  retention = null
   publish()
 }
 
@@ -123,6 +127,27 @@ async function refreshVacancies() {
   if (result.ok && isVacancies(result.payload)) vacancies = result.payload
 }
 
+function isRetention(payload) {
+  return Boolean(payload && payload.note_ru && Array.isArray(payload.triggers))
+}
+
+async function refreshRetention() {
+  const result = await api('/api/retention')
+  if (result.ok && isRetention(result.payload)) retention = result.payload
+}
+
+/* Повод «появилась вакансия» - единственное, что может отметиться
+   сработавшим, поэтому после него перечитывается вся лента и история. */
+export async function mutateRetention(path, options = {}) {
+  const result = await api(path, options)
+  if (result.ok && isRetention(result.payload)) {
+    retention = result.payload
+    await Promise.all([refreshVacancies(), refreshGrowth()])
+    publish()
+  }
+  return result
+}
+
 function isGrowth(payload) {
   return Boolean(payload && payload.note_ru && Array.isArray(payload.periods))
 }
@@ -149,7 +174,7 @@ export async function loadProfile() {
     refreshDisputes(),
     refreshModeration()
   ])
-  await Promise.all([refreshGrowth(), refreshVacancies()])
+  await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
   if (profileResult.ok && isProfile(profileResult.payload)) profile = profileResult.payload
   publish()
   return profileResult
@@ -164,7 +189,7 @@ export async function mutate(path, options = {}) {
       refreshProf(), refreshProbe(), refreshNda(), refreshTrust(),
       refreshDisputes(), refreshModeration()
     ])
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result
@@ -181,7 +206,7 @@ export async function mutateProbe(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshNda(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result
@@ -197,7 +222,7 @@ export async function mutateNda(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshTrust(), refreshDisputes(), refreshModeration()
     ])
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result
@@ -213,7 +238,7 @@ export async function mutateTrust(path, options = {}) {
     await Promise.all([
       refreshProf(), refreshProbe(), refreshNda(), refreshDisputes(), refreshModeration()
     ])
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result
@@ -238,7 +263,7 @@ export async function mutateModeration(path, options = {}) {
   if (result.ok && isQueue(result.payload)) {
     moderation = result.payload
     await Promise.all([refreshProf(), refreshTrust(), refreshProbe(), refreshDisputes()])
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result
@@ -260,7 +285,7 @@ export async function mutateProf(path, options = {}) {
   const result = await api(path, options)
   if (result.ok && isProf(result.payload)) {
     prof = result.payload
-    await Promise.all([refreshGrowth(), refreshVacancies()])
+    await Promise.all([refreshGrowth(), refreshVacancies(), refreshRetention()])
     publish()
   }
   return result

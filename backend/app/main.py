@@ -14,6 +14,7 @@ from app.routers import (
     probe,
     prof,
     profile,
+    retention,
     trust,
     vacancies,
     xai,
@@ -48,6 +49,7 @@ app.include_router(moderation.router)
 app.include_router(growth.router)
 app.include_router(export.router)
 app.include_router(vacancies.router)
+app.include_router(retention.router)
 
 
 @app.get("/api/health", tags=["service"])

@@ -274,6 +274,52 @@ def _probe_explanations(db: Session, user: User, now: datetime) -> list[Explanat
     return found
 
 
+def _vacancy_explanations(db: Session, user: User, now: datetime) -> list[Explanation]:
+    """Почему система считает вакансию подходящей (модуль 11, FR2.1/FR2.3).
+
+    Кандидат, пришедший из уведомления, и кандидат, открывший вакансию сам,
+    должны попасть в одно и то же объяснение - поэтому оно собирается здесь, а
+    не рисуется отдельным экраном внутри уведомления.
+    """
+    from app.models import ReturnTrigger
+    from app.routers.retention import NEW_MATCHING_VACANCY, _explanation_text
+    from app.routers.vacancies import match_for
+    from app import vacancies as library
+    from app.xai import VACANCY_MATCH, vacancy_explanation_id
+
+    triggers = db.scalars(
+        select(ReturnTrigger).where(
+            ReturnTrigger.user_id == user.id,
+            ReturnTrigger.trigger_type == NEW_MATCHING_VACANCY,
+        )
+    )
+
+    found: list[Explanation] = []
+    for trigger in triggers:
+        vacancy = library.BY_ID.get(trigger.related_ref)
+        if vacancy is None:
+            continue
+        result = match_for(db, user, vacancy)
+        found.append(
+            Explanation(
+                id=vacancy_explanation_id(vacancy.id),
+                subject_type=VACANCY_MATCH,
+                subject_id=vacancy.id,
+                conclusion_ru=_explanation_text(vacancy, result),
+                # Объяснение опирается на разбор требований модуля 10, а не на
+                # второе, отдельное суждение о релевантности (FR2.2).
+                evidence_refs=tuple(
+                    item.requirement_id for item in result.covered + result.uncovered
+                ),
+                generated_by="module_10",
+                created_at=trigger.created_at or now,
+                subject_label_ru=vacancy.title_ru,
+                subject_value_ru=str(result.overall_match_score),
+            )
+        )
+    return found
+
+
 def collect(db: Session, user: User) -> list[Explanation]:
     """Все выводы системы об этом кандидате в одной форме."""
     now = datetime.now(timezone.utc)
@@ -282,6 +328,7 @@ def collect(db: Session, user: User) -> list[Explanation]:
         *_trust_explanations(db, user, now),
         *_contradiction_explanations(db, user, now),
         *_probe_explanations(db, user, now),
+        *_vacancy_explanations(db, user, now),
     ]
 
 
@@ -362,6 +409,19 @@ def resolve_refs(db: Session, owner: User, refs: list[str]) -> list[dict]:
                     "resolved": True,
                     "title_ru": "Ваш ответ на вопрос",
                     "detail_ru": item.text,
+                }
+            )
+
+        elif prefix == "req":
+            # Требование вакансии - не запись профиля: раскрывать нечего, но и
+            # выбрасывать из списка нельзя (FR2.3 модуля 7).
+            resolved.append(
+                {
+                    "ref": ref,
+                    "kind": "requirement",
+                    "resolved": True,
+                    "title_ru": f"Требование вакансии {ref}",
+                    "detail_ru": None,
                 }
             )
 

@@ -21,6 +21,7 @@ import { EXPORT_SKELETON, initExport, renderExport, resetExport } from './export
 import {
   VACANCIES_SKELETON, initVacancies, renderVacancies, resetVacancies
 } from './vacancies.js'
+import { RETENTION_SKELETON, initRetention, renderRetention } from './retention.js'
 
 /* ---------- словари: в коде английские значения, на экране русские ---------- */
 
@@ -111,6 +112,8 @@ const SKELETON = `
   ${TRUST_SKELETON}
 
   ${PROF_EXTRAS_SKELETON}
+
+  ${RETENTION_SKELETON}
 
   ${VACANCIES_SKELETON}
 
@@ -423,6 +426,7 @@ function render(state) {
   renderProbe(state)
   renderNda(state)
   renderTrust(state)
+  renderRetention(state)
   renderVacancies(state)
   renderExport(state)
   renderGrowth(state)
@@ -709,6 +713,7 @@ export async function initProfile() {
     initProbe({ getState, root })
     initNda({ getState, root })
     initTrust({ getState, root })
+    initRetention({ root })
     initVacancies({
       getState,
       root,
