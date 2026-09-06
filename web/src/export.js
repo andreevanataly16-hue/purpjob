@@ -56,7 +56,9 @@ function previewBody(data) {
 
       <div class="paper-scores">
         <span><b>PROF.индекс:</b> ${data.prof_score} из 100</span>
-        <span><b>Trust Score:</b> ${data.trust_score} из 100</span>
+        <span><b>Trust Score:</b> ${
+          data.trust_measured ? `${data.trust_score} из 100` : 'пока не рассчитан'
+        }</span>
       </div>
       <p class="paper-legend">${escape(data.trust_legend_ru)}</p>
 

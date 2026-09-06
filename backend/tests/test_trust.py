@@ -24,6 +24,8 @@ from app.trust import (
     authenticity,
     consistency,
     find_level_mismatch,
+    has_measurement,
+    measured_components,
     overall,
     severity_for,
     understanding,
@@ -536,3 +538,95 @@ def test_declined_evidence_is_not_a_finding():
 def test_only_links_and_files_become_findings():
     items = [evidence(id_="ev_002", type_="free_text", category=None, statements=())]
     assert unlinked_sources(items) == []
+
+
+# --- «не измерено» против «измерено нулём» --------------------------------
+#
+# Прежняя реализация складывала неизмеренный компонент как ноль с полным весом.
+# Кандидат, которому просто нечего было подтверждать, получал тот же балл, что
+# и кандидат, проверку не прошедший, — то есть отсутствие сигнала работало как
+# отрицательный сигнал. Это прямо противоречит правилу продукта, и ниже оно
+# закреплено числами, а не текстом на экране.
+
+
+def scored(component_id, score, *, measured=True):
+    return ComponentScore(
+        component_id=component_id,
+        score=score,
+        explanation_ru="для проверки арифметики",
+        measured=measured,
+    )
+
+
+def test_unmeasured_component_does_not_lower_the_overall():
+    """A: неизмеренный компонент не участвует в среднем вовсе."""
+    without = overall([scored(AUTHENTICITY, 80), scored(UNDERSTANDING, 70)])
+    with_unmeasured = overall(
+        [
+            scored(AUTHENTICITY, 80),
+            scored(UNDERSTANDING, 70),
+            scored(CONSISTENCY, 0, measured=False),
+        ]
+    )
+    assert with_unmeasured == without
+
+
+def test_overall_is_normalised_by_the_weight_of_measured_components():
+    """B: вес делится на измеренное, а не на все три компонента."""
+    components = [
+        scored(AUTHENTICITY, 80),
+        scored(UNDERSTANDING, 70),
+        scored(CONSISTENCY, 0, measured=False),
+    ]
+    # (80*0.3 + 70*0.4) / (0.3 + 0.4) = 52 / 0.7
+    assert overall(components) == 74
+
+
+def test_single_measured_component_defines_the_overall():
+    """C: если измерен один компонент, общий балл равен ему."""
+    components = [
+        scored(AUTHENTICITY, 63),
+        scored(UNDERSTANDING, 0, measured=False),
+        scored(CONSISTENCY, 0, measured=False),
+    ]
+    assert overall(components) == 63
+
+
+def test_nothing_measured_is_an_explicit_state_not_a_zero():
+    """D: пустой профиль — «пока не измерено», а не «ноль из ста»."""
+    components = [
+        scored(AUTHENTICITY, 0, measured=False),
+        scored(UNDERSTANDING, 0, measured=False),
+        scored(CONSISTENCY, 0, measured=False),
+    ]
+    assert has_measurement(components) is False
+    assert measured_components(components) == []
+    # Число всё равно нужно отдать - но отличает состояние флаг, а не оно.
+    assert overall(components) == 0
+
+
+def test_measured_zero_is_not_the_same_as_unmeasured():
+    """E: настоящий ноль балл понижает — иначе провал ничего бы не значил."""
+    unmeasured = overall(
+        [
+            scored(AUTHENTICITY, 80),
+            scored(UNDERSTANDING, 70),
+            scored(CONSISTENCY, 0, measured=False),
+        ]
+    )
+    measured_zero = overall(
+        [
+            scored(AUTHENTICITY, 80),
+            scored(UNDERSTANDING, 70),
+            scored(CONSISTENCY, 0),
+        ]
+    )
+    assert measured_zero < unmeasured
+    assert measured_zero == 52
+
+
+def test_empty_profile_reports_unmeasured_over_the_api(signed_client):
+    """То же самое, но глазами кандидата: ни одного нуля на пустом профиле."""
+    payload = signed_client.get(TRUST).json()
+    assert payload["overall_measured"] is False
+    assert all(item["measured"] is False for item in payload["components"])

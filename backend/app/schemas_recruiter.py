@@ -27,6 +27,8 @@ class CandidateCardOut(BaseModel):
     prof_index: int = Field(ge=0, le=100)
     prof_level: str
     trust_score: int = Field(ge=0, le=100)
+    # Рассчитан ли балл: без этого ноль в карточке читается как приговор.
+    trust_measured: bool = True
     match_score: int = Field(ge=0, le=100)
     covered_count: int
     uncovered_count: int
@@ -55,6 +57,9 @@ class TrustComponentOut(BaseModel):
     component_id: str
     name_ru: str
     score: int = Field(ge=0, le=100)
+    # Рекрутер должен видеть разницу между «ноль» и «не измерено» так же, как
+    # кандидат: иначе неизмеренный компонент читается как провал.
+    measured: bool
     explanation_ru: str
     explanation_id: str
     # Согласие управляет только глубиной: сами доказательства или только вывод.
@@ -94,7 +99,7 @@ class CandidateDetailOut(CandidateCardOut):
 
 class SearchOut(BaseModel):
     note_ru: str
-    not_production_safe_ru: str
+    access_note_ru: str
     vacancy_id: str
     vacancy_title_ru: str
     available_vacancies: list[VacancyOptionOut]

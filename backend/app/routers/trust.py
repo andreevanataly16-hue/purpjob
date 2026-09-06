@@ -44,6 +44,7 @@ from app.schemas_trust import FindingResponseIn, ResolutionIn, TrustOut
 from app.xai import trust_explanation_id
 from app.trust import (
     AUTHENTICITY,
+    has_measurement,
     COMPONENT_RU,
     CONSISTENCY,
     UNDERSTANDING,
@@ -300,7 +301,10 @@ def _apply_moderation(
             continue
 
         new_score = max(0, min(100, int(override.new_value)))
-        result.append(replace(component, score=new_score))
+        # Модератор посмотрел и поставил значение - это измерение, пусть и
+        # человеческое. Оставить компонент неизмеренным значило бы выкинуть
+        # правку из общего балла.
+        result.append(replace(component, score=new_score, measured=True))
         notes[component.component_id] = overrides.note_ru(override)
         trace.append(
             {
@@ -359,6 +363,7 @@ def _state(db: Session, user: User) -> TrustOut:
     return TrustOut.model_validate(
         {
             "overall_score": overall(components),
+            "overall_measured": has_measurement(components),
             "computed_at": datetime.now(timezone.utc),
             # Версия растёт с каждым пересчётом и с каждой ручной правкой
             # (FR5.4 модуля 7): по `moderation_trace` от изменившегося балла
@@ -370,6 +375,7 @@ def _state(db: Session, user: User) -> TrustOut:
                     "component_id": item.component_id,
                     "name_ru": COMPONENT_RU[item.component_id],
                     "score": item.score,
+                    "measured": item.measured,
                     "explanation_ru": item.explanation_ru,
                     "contributing_evidence_ids": item.contributing_evidence_ids,
                     "notes_ru": item.notes_ru,

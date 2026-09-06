@@ -247,6 +247,17 @@ def trust_overall(candidate: SeedCandidate) -> int:
     return overall(trust_components(candidate))
 
 
+def trust_measured(candidate: SeedCandidate) -> bool:
+    """Есть ли вообще чем считать доверие этому кандидату.
+
+    Нужна отдельно от балла: ноль без этого признака читается как «проверили
+    и не доверяем», хотя проверять могло быть нечего.
+    """
+    from app.trust import has_measurement
+
+    return has_measurement(trust_components(candidate))
+
+
 # --- живой профиль как участник пула (модуль 13) --------------------------
 #
 # Модуль 12 строился на рукописном наборе именно потому, что настоящих

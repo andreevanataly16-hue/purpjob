@@ -154,9 +154,9 @@ class QueueStatsOut(BaseModel):
 
 
 class QueueOut(BaseModel):
-    # Предупреждение едет в ответе API, а не только в README: режим модератора
-    # без доступа и без ролей нельзя выкатывать наружу (§7 FRD).
-    not_production_safe_ru: str
+    # Что именно закрыто доступом, а что ещё нет - едет в ответе API, а не
+    # только в README: границу должно быть видно оттуда, где ей пользуются.
+    access_note_ru: str
     open_count: int
     cases: list[QueueCaseOut]
     override_targets: dict[str, list[str]]

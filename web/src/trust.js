@@ -41,9 +41,13 @@ function componentCard(item) {
     <div class="trust-component">
       <div class="top">
         <span class="name">${escape(item.name_ru)}</span>
-        <span class="score">${item.score}</span>
+        <span class="score ${item.measured ? '' : 'unmeasured'}">${
+          item.measured ? item.score : 'не измерено'
+        }</span>
       </div>
-      <div class="trust-bar"><i style="width:${item.score}%"></i></div>
+      ${item.measured
+        ? `<div class="trust-bar"><i style="width:${item.score}%"></i></div>`
+        : ''}
       <p class="why">${escape(item.explanation_ru)}</p>
       ${item.notes_ru.map(note => `<p class="note">${escape(note)}</p>`).join('')}
       ${item.moderator_note_ru
@@ -117,8 +121,14 @@ export function renderTrust(state) {
 
   box.innerHTML = `
     <div class="trust-head">
-      <span class="trust-value">${trust.overall_score}</span>
-      <span class="trust-of">из 100 — достоверность сведений профиля</span>
+      <span class="trust-value ${trust.overall_measured ? '' : 'unmeasured'}">${
+        trust.overall_measured ? trust.overall_score : '—'
+      }</span>
+      <span class="trust-of">${
+        trust.overall_measured
+          ? 'из 100 — достоверность сведений профиля'
+          : 'пока не рассчитан: подтверждать ещё нечего. Это не оценка — просто нет данных'
+      }</span>
     </div>
 
     <div class="trust-components">

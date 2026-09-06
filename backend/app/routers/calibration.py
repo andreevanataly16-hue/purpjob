@@ -71,9 +71,8 @@ router = APIRouter(
     dependencies=[Depends(require_moderator)],
 )
 
-NOT_PRODUCTION_SAFE_RU = (
-    "Экран оператора без доступа и без ролей: его может открыть любой вошедший. Так можно "
-    "только локально — настоящее разграничение прав здесь ещё не появилось."
+ACCESS_NOTE_RU = (
+    "Роли есть и проверяются на сервере: кандидат сюда не попадает, роль нельзя подменить запросом, обращения к чужим данным записываются. Это минимальная граница для пилота — разграничения по компаниям, срока действия роли и управления ролями из интерфейса пока нет. Экран оператора открыт роли модератора: рекрутер сюда не попадает."
 )
 
 NOTE_RU = (
@@ -353,7 +352,7 @@ def _payload(db: Session) -> CalibrationOut:
     values = _current_values()
     return CalibrationOut.model_validate(
         {
-            "not_production_safe_ru": NOT_PRODUCTION_SAFE_RU,
+            "access_note_ru": ACCESS_NOTE_RU,
             "note_ru": NOTE_RU,
             "accuracy": _accuracy(db),
             "insights": _insights(db),

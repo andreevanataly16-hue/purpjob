@@ -28,6 +28,11 @@ class ComponentOut(BaseModel):
     contributing_evidence_ids: list[str]
     notes_ru: list[str]
 
+    # Измерен ли компонент вообще. Поле обязательное: `score` без него
+    # неоднозначен - ноль означает и «посмотрели, не засчитали», и «смотреть
+    # было нечем», а это принципиально разные вещи.
+    measured: bool
+
     # Модуль 7: точка входа в объяснение и след ручной правки.
     explanation_id: str = ""
     moderator_note_ru: str | None = None
@@ -85,6 +90,10 @@ class TrustTraceOut(BaseModel):
 
 class TrustOut(BaseModel):
     overall_score: int = Field(ge=0, le=100)
+    # Рассчитан ли балл вообще. Когда ни один компонент не измерен, показывать
+    # ноль нельзя: это читается как «всё проверили, доверия нет», хотя
+    # проверять было нечего.
+    overall_measured: bool
     computed_at: datetime
     version: int = Field(ge=1)
     legend_ru: str

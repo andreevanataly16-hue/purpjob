@@ -77,6 +77,7 @@ def _collect(db: Session, user: User, include_contacts: bool) -> ResumeData:
         segment_ru=f"Профессиональный профиль PurpJob · эталон {snapshot.reference_profile_id}",
         prof_score=snapshot.overall_score,
         trust_score=trust.overall_score,
+        trust_measured=trust.overall_measured,
         # Легенда берётся у модуля 6 как есть: это фиксированный абзац, а не
         # место для второй, «своей» формулировки (FR3.2).
         trust_legend_ru=LEGEND_RU,
@@ -109,6 +110,7 @@ def preview(
             "segment_ru": data.segment_ru,
             "prof_score": data.prof_score,
             "trust_score": data.trust_score,
+            "trust_measured": data.trust_measured,
             "trust_legend_ru": data.trust_legend_ru,
             "skills": [{"name_ru": name, "status_ru": status} for name, status in data.skills],
             "projects": [{"name_ru": name, "text": text} for name, text in data.projects],

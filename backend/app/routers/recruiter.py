@@ -16,9 +16,14 @@
 3. **Отклонённые находки.** Их не существует нигде - ни при каком согласии и
    ни при какой видимости. Это самое строгое правило из трёх.
 
-БЕЗ ДОСТУПА И БЕЗ РОЛЕЙ. Роль рекрутера здесь - режим экрана, как и роль
-модератора в модуле 7. Кто искал и кого смотрел - нигде не фиксируется. До
-настоящего разграничения прав и журнала доступа это наружу не выкатывается.
+ДОСТУП. Раздел открыт только роли рекрутера, и проверяется это на сервере:
+страж стоит на роутере целиком, роль читается из записи пользователя, а не из
+запроса. Кандидат сюда не попадает ни через экран, ни прямым обращением к API.
+Кто и что смотрел - записывается в журнал обращений, без содержимого.
+
+Чего пока нет: разграничения по компаниям, срока действия роли и управления
+ролями из интерфейса. Для пилота этого достаточно, для многопользовательской
+среды - ещё нет.
 """
 
 from datetime import datetime, timezone
@@ -42,11 +47,7 @@ router = APIRouter(
     dependencies=[Depends(require_recruiter)],
 )
 
-NOT_PRODUCTION_SAFE_RU = (
-    "Режим рекрутера без доступа и без ролей: его может открыть любой вошедший, и нигде не "
-    "записывается, кто кого смотрел. Так можно только локально — до настоящего разграничения "
-    "прав и журнала доступа это наружу не выкатывается."
-)
+ACCESS_NOTE_RU = "Роли есть и проверяются на сервере: кандидат сюда не попадает, роль нельзя подменить запросом, обращения к чужим данным записываются. Это минимальная граница для пилота — разграничения по компаниям, срока действия роли и управления ролями из интерфейса пока нет."
 
 NOTE_RU = (
     "Здесь видно не «сильный кандидат», а что именно подтверждено и чем. Профили, скрытые "
@@ -214,6 +215,7 @@ def _card(candidate: SeedCandidate, result: library.MatchResult, identity: revea
         "prof_index": snapshot["overall_score"],
         "prof_level": snapshot["level"],
         "trust_score": pool.trust_overall(candidate),
+        "trust_measured": pool.trust_measured(candidate),
         "match_score": result.overall_match_score,
         "covered_count": len(result.covered),
         "uncovered_count": len(result.uncovered),
@@ -269,6 +271,7 @@ def _detail(
                     "component_id": item.component_id,
                     "name_ru": COMPONENT_RU[item.component_id],
                     "score": item.score,
+                    "measured": item.measured,
                     # Голого числа рекрутеру не показывают так же, как и
                     # кандидату (FR3.1).
                     "explanation_ru": _third_person(item.explanation_ru),
@@ -337,7 +340,7 @@ def search(
     return SearchOut.model_validate(
         {
             "note_ru": NOTE_RU,
-            "not_production_safe_ru": NOT_PRODUCTION_SAFE_RU,
+            "access_note_ru": ACCESS_NOTE_RU,
             "vacancy_id": vacancy.id,
             "vacancy_title_ru": vacancy.title_ru,
             "available_vacancies": [

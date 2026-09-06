@@ -100,7 +100,7 @@ function isDisputes(payload) {
 }
 
 function isQueue(payload) {
-  return Boolean(payload && payload.not_production_safe_ru && Array.isArray(payload.cases))
+  return Boolean(payload && payload.access_note_ru && Array.isArray(payload.cases))
 }
 
 /* Споры и очередь модератора: модуль 7 ничего не считает сам, но правка

@@ -314,13 +314,21 @@ def test_comparison_needs_at_least_one_candidate(recruiter_client):
     )
 
 
-# --- режим без ролей --------------------------------------------------------
+# --- граница доступа --------------------------------------------------------
 
 
-def test_recruiter_mode_is_flagged_as_not_production_safe(recruiter_client):
+def test_recruiter_mode_states_the_real_access_boundary(recruiter_client):
+    """Прежнее ожидание - «режим без ролей» - стало неправдой про код.
+
+    Роли появились в стабилизационном спринте. Проверяется то же по смыслу:
+    что раздел честно описывает свою границу, не обещая лишнего.
+    """
     payload = search(recruiter_client)
-    assert "без доступа и без ролей" in payload["not_production_safe_ru"]
-    assert "кто кого смотрел" in payload["not_production_safe_ru"]
+    note = payload["access_note_ru"]
+    assert "проверяются на сервере" in note
+    assert "разграничения по компаниям" in note
+    assert "любой вошедший" not in note
+    assert "записываются" in note
 
 
 def test_module_computes_nothing_of_its_own():

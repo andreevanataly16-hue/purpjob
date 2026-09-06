@@ -543,10 +543,20 @@ def test_closed_case_cannot_be_acted_on_again(signed_client, moderator_client):
     assert again.status_code == 409
 
 
-def test_queue_warns_that_it_is_not_production_safe(signed_client, moderator_client):
-    """§7: режим без ролей должен быть помечен в самом ответе, а не только в README."""
+def test_queue_states_the_real_access_boundary(signed_client, moderator_client):
+    """§7: граница доступа должна быть видна в самом ответе, а не только в README.
+
+    Раньше здесь проверялось, что очередь помечена как «без доступа и без
+    ролей». Роли появились в стабилизационном спринте, и прежнее ожидание
+    стало неправдой про код: тест бы охранял устаревшее обещание. Смысл
+    проверки тот же - экран честно говорит, где его граница.
+    """
     payload = queue(moderator_client)
-    assert "без доступа и без ролей" in payload["not_production_safe_ru"]
+    note = payload["access_note_ru"]
+    assert "проверяются на сервере" in note
+    # И не обещает больше, чем есть.
+    assert "разграничения по компаниям" in note
+    assert "без доступа и без ролей" not in note
 
 
 def test_queue_measures_load_and_dispute_concentration(signed_client, moderator_client):

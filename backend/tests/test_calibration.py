@@ -338,9 +338,19 @@ def test_recorded_change_does_not_alter_past_snapshots(signed_client, moderator_
         assert db.query(RecruiterFeedback).first().trust_score_at_feedback == before
 
 
-def test_operator_screen_is_flagged_as_not_production_safe(signed_client, moderator_client):
+def test_operator_screen_states_the_real_access_boundary(signed_client, moderator_client):
+    """Раньше здесь проверялось, что экран помечен как «без ролей».
+
+    Роли появились в стабилизационном спринте, и прежнее ожидание стало
+    неправдой про код. Проверяется то же по смыслу - что граница описана
+    честно, - но теперь честно значит «доступ есть, а вот чего в нём ещё нет».
+    """
     payload = moderator_client.get(CAL).json()
-    assert "без доступа и без ролей" in payload["not_production_safe_ru"]
+    note = payload["access_note_ru"]
+    assert "проверяются на сервере" in note
+    # И не обещает больше, чем есть.
+    assert "разграничения по компаниям" in note
+    assert "любой вошедший" not in note
 
 
 # --- US4: выборочный разбор ------------------------------------------------

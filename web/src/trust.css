@@ -108,3 +108,13 @@
   font: inherit;
   font-size: 13.5px;
 }
+
+/* Неизмеренный компонент. Показывать у него ноль и пустую шкалу нельзя:
+   отсутствие данных читалось бы как плохой результат, а это разные вещи. */
+.trust-component .score.unmeasured,
+.trust-value.unmeasured {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.trust-value.unmeasured { font-size: 30px; }

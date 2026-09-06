@@ -4,8 +4,8 @@
    мягкости кандидатской части, — но правило то же: никаких «сильный» и
    «слабый», только что подтверждено и чем.
 
-   Роль рекрутера — режим экрана, а не вход: настоящих прав доступа в продукте
-   нет, и предупреждение об этом стоит прямо в блоке. */
+   Раздел открыт только роли рекрутера, и проверяется это на сервере — экран
+   ничего не решает сам. Чего в этой границе ещё нет, написано прямо в блоке. */
 
 import './recruiter.css'
 import { api } from './api.js'
@@ -73,7 +73,11 @@ function candidateRow(item) {
         <div class="rec-numbers">
           <span><b>${item.match_score}</b> совпадение</span>
           <span><b>${item.prof_index}</b> индекс</span>
-          <span><b>${item.trust_score}</b> достоверность</span>
+          <span>${
+            item.trust_measured
+              ? `<b>${item.trust_score}</b> достоверность`
+              : '<b>—</b> достоверность не рассчитана'
+          }</span>
         </div>
       </div>
 
@@ -142,7 +146,7 @@ function detailBody(detail) {
       <div class="rec-trust">
         <div class="rec-trust-head">
           <span>${escape(item.name_ru)}</span>
-          <b>${item.score}</b>
+          <b>${item.measured ? item.score : 'не измерено'}</b>
         </div>
         <p>${escape(item.explanation_ru)}</p>
         ${item.evidence_visible && item.evidence_refs.length
@@ -176,7 +180,7 @@ function compareTable(data) {
   const rows = [
     ['Совпадение с вакансией', item => item.match_score],
     ['PROF.индекс', item => item.prof_index],
-    ['Достоверность', item => item.trust_score],
+    ['Достоверность', item => (item.trust_measured ? item.trust_score : 'не рассчитана')],
     ['Требований закрыто', item => item.covered_count],
     ['Требует проверки', item => item.uncovered_count],
     [
@@ -228,7 +232,7 @@ export function renderRecruiter() {
 
   const data = ui.data
   box.innerHTML = `
-    <div class="rec-warning">${escape(data.not_production_safe_ru)}</div>
+    <div class="rec-warning access-note">${escape(data.access_note_ru)}</div>
     <p class="sub">${escape(data.note_ru)}</p>
 
     <div class="rec-filters">

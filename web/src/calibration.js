@@ -155,7 +155,7 @@ function body(data) {
   const accuracy = data.accuracy
 
   return `
-    <div class="cal-warning">${escape(data.not_production_safe_ru)}</div>
+    <div class="cal-warning access-note">${escape(data.access_note_ru)}</div>
     <p class="sub">${escape(data.note_ru)}</p>
 
     <div class="cal-accuracy">

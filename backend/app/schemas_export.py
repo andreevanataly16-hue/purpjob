@@ -38,6 +38,7 @@ class ExportPreviewOut(BaseModel):
     segment_ru: str
     prof_score: int
     trust_score: int
+    trust_measured: bool
     trust_legend_ru: str
     skills: list[SkillOut]
     projects: list[ProjectOut]

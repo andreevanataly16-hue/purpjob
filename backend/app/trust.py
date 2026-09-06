@@ -122,11 +122,31 @@ class EvidenceFacts:
 
 @dataclass(frozen=True)
 class ComponentScore:
+    """Один компонент достоверности.
+
+    `measured` отличает две принципиально разные вещи, которые до этого
+    выглядели одинаково - нулём:
+
+    * **измерено, результат ноль** - система посмотрела и ничего не засчитала;
+    * **не измерено** - смотреть было нечем.
+
+    Пока их не различали, отсутствие данных вело себя как плохой результат:
+    неизмеренный компонент входил в общий балл нулём и тянул его вниз. Это
+    прямо противоречит правилу продукта - отсутствие сигнала не есть
+    отрицательный сигнал, - и расходилось с тем, что компонент писал о себе
+    кандидату.
+
+    Неизмеренный компонент не участвует в общем балле вообще: он не улучшает и
+    не ухудшает его. Нейтральной серединой он тоже не становится - выдумывать
+    значение там, где данных нет, ничем не лучше нуля.
+    """
+
     component_id: str
     score: int
     explanation_ru: str
     contributing_evidence_ids: list[str] = field(default_factory=list)
     notes_ru: list[str] = field(default_factory=list)
+    measured: bool = True
 
 
 # --- вспомогательное ------------------------------------------------------
@@ -241,7 +261,15 @@ def authenticity(probes: list[ProbeFacts]) -> ComponentScore:
     score = _to_score(units, AUTHENTICITY)
 
     if not probes:
-        explanation = "Пока не на чем считать: вы ещё не отвечали на вопросы вживую."
+        # Не измерено, а не «ноль»: вопросов ещё не было, смотреть было нечего.
+        return ComponentScore(
+            AUTHENTICITY,
+            0,
+            "Пока не измерено: вы ещё не отвечали на вопросы вживую.",
+            [],
+            [AUTHENTICITY_CAVEAT_RU],
+            measured=False,
+        )
     else:
         with_paste = [item for item in probes if item.paste_attempts_blocked > 0]
         explanation = (
@@ -279,7 +307,15 @@ def understanding(probes: list[ProbeFacts], nda_confirmations: list[EvidenceFact
     score = _to_score(units, UNDERSTANDING)
 
     if not probes and not eligible:
-        explanation = "Ни одного разобранного вживую ответа пока нет."
+        # Ни ответов, ни подтверждений под NDA - измерять нечем.
+        return ComponentScore(
+            UNDERSTANDING,
+            0,
+            "Пока не измерено: ни одного разобранного вживую ответа ещё не было.",
+            [],
+            [],
+            measured=False,
+        )
     else:
         parts = []
         if probes:
@@ -329,14 +365,19 @@ def consistency(
     units = resolved_contradictions * FIRST_IN_CATEGORY
     score = _to_score(units, CONSISTENCY)
 
-    if open_contradictions:
-        explanation = (
-            f"Нестыковок, ожидающих разбора: {open_contradictions}. На балл они не влияют — "
-            "разбор их добавит."
-        )
-    elif resolved_contradictions:
+    # Сигнал здесь даёт только разобранная нестыковка. Открытая - это ещё не
+    # результат, а ожидание разбора: считать её измерением означало бы
+    # превратить её в наказание, чего правило FR5.1 не допускает.
+    measured = resolved_contradictions > 0
+
+    if resolved_contradictions:
         explanation = (
             f"Разобранных нестыковок: {resolved_contradictions}. Профиль от разбора стал точнее."
+        )
+    elif open_contradictions:
+        explanation = (
+            f"Пока не измерено. Нестыковок, ожидающих разбора: {open_contradictions}; "
+            "на балл они не влияют — разбор их добавит."
         )
     elif active:
         explanation = (
@@ -345,7 +386,7 @@ def consistency(
             "ничего не нашла. Это не оценка — просто нечего засчитать."
         )
     else:
-        explanation = "В профиле пока нет доказательств, которые можно было бы сверить между собой."
+        explanation = "Пока не измерено: в профиле нет доказательств, которые можно было бы сверить."
 
     notes = [
         f"Здесь считаются только разобранные нестыковки. Доказательств в профиле "
@@ -362,22 +403,49 @@ def consistency(
     # доказательства в этом компоненте не считаются вообще. Перечислять их как
     # «учтённые» означало бы, что объяснение расходится с расчётом - ровно то,
     # что этот компонент и должен исключать.
-    return ComponentScore(CONSISTENCY, score, explanation, [], notes)
+    return ComponentScore(CONSISTENCY, score, explanation, [], notes, measured=measured)
 
 
 # --- общий балл -----------------------------------------------------------
 
 
-def overall(components: list[ComponentScore]) -> int:
-    """Взвешенная сумма компонентов - не среднее (FR1.5).
+def measured_components(components: list[ComponentScore]) -> list[ComponentScore]:
+    return [item for item in components if item.measured]
 
-    Здесь тоже только сложение: каждый компонент добавляет свою долю, и ни при
-    каких данных итог не уходит ниже нуля.
+
+def has_measurement(components: list[ComponentScore]) -> bool:
+    """Есть ли хоть один измеренный компонент.
+
+    Если нет - общего балла тоже нет. Показывать в этом случае ноль означало бы
+    сказать «мы всё проверили, доверия нет», хотя проверять было нечего.
     """
-    total = 0.0
-    for component in components:
-        total += component.score * COMPONENT_WEIGHT[component.component_id]
-    return max(0, min(100, round(total)))
+    return bool(measured_components(components))
+
+
+def overall(components: list[ComponentScore]) -> int:
+    """Взвешенная сумма измеренных компонентов (FR1.5).
+
+    Веса нормализуются по тем компонентам, которые действительно измерены.
+    Иначе неизмеренный компонент входил бы в сумму нулём и тянул балл вниз -
+    то есть отсутствие данных работало бы как плохой результат.
+
+    Пример. Понимание 70 при неизмеренных остальных даёт 70, а не 28: вес 0.4
+    описывает, насколько понимание важнее прочего, а не насколько уверенно мы
+    его измерили. Когда «прочего» нет, делить на него нечего.
+
+    Здесь по-прежнему только сложение: ни одно действие кандидата не может
+    уменьшить накопленное.
+    """
+    measured = measured_components(components)
+    if not measured:
+        # Отдельного значения для «не рассчитано» здесь нет намеренно: тип
+        # остаётся числом, а само состояние несёт `has_measurement`. Экран и
+        # ответ API обязаны показывать именно его, а не этот ноль.
+        return 0
+
+    weight = sum(COMPONENT_WEIGHT[item.component_id] for item in measured)
+    total = sum(item.score * COMPONENT_WEIGHT[item.component_id] for item in measured)
+    return max(0, min(100, round(total / weight)))
 
 
 # --- локальные проверки непротиворечивости (§5.1) ------------------------

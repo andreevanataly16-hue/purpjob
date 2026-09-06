@@ -75,6 +75,10 @@ class ResumeData:
     segment_ru: str
     prof_score: int
     trust_score: int
+    # Балл доверия может быть ещё не рассчитан. В резюме это должно быть
+    # написано словами: «0 из 100» читается как приговор, которого никто не
+    # выносил.
+    trust_measured: bool
     trust_legend_ru: str
     skills: list[tuple[str, str]]
     projects: list[tuple[str, str]]
@@ -313,7 +317,12 @@ def build_pdf(data: ResumeData) -> bytes:
     )
     page.gap(6)
 
-    page.line(f"Trust Score: {data.trust_score} из 100", 12)
+    page.line(
+        f"Trust Score: {data.trust_score} из 100"
+        if data.trust_measured
+        else "Trust Score: пока не рассчитан",
+        12,
+    )
     page.paragraph(data.trust_legend_ru, 9)
     page.gap(10)
 

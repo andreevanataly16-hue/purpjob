@@ -123,7 +123,7 @@ class BatchOut(BaseModel):
 
 
 class CalibrationOut(BaseModel):
-    not_production_safe_ru: str
+    access_note_ru: str
     note_ru: str
     accuracy: AccuracyOut
     insights: list[InsightOut]

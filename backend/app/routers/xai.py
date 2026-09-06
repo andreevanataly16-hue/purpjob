@@ -201,7 +201,10 @@ def _trust_explanations(db: Session, user: User, now: datetime) -> list[Explanat
                 generated_by=MODULE_6,
                 created_at=now,
                 subject_label_ru=component.name_ru,
-                subject_value_ru=str(component.score),
+                # У неизмеренного компонента значения нет. Показать здесь
+                # ноль означало бы, что объяснение противоречит собственному
+                # тексту, который говорит «пока не измерено».
+                subject_value_ru=str(component.score) if component.measured else "не измерено",
             )
         )
     return found

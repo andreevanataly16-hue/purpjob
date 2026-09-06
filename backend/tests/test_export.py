@@ -440,6 +440,7 @@ def test_build_pdf_does_not_depend_on_call_order():
         segment_ru="Профиль",
         prof_score=10,
         trust_score=20,
+        trust_measured=True,
         trust_legend_ru="Легенда",
         skills=[],
         projects=[],
