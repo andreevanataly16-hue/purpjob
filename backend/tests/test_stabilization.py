@@ -587,3 +587,103 @@ def test_create_all_is_no_longer_the_apps_way_of_building_the_schema():
     # это документация, а не поведение.
     assert "metadata.create_all" not in source
     assert "assert_schema_current(engine)" in source
+
+
+# --- 8. Этапы продукта -----------------------------------------------------
+
+
+def _routes_with(env: dict[str, str]) -> set[str]:
+    """Адреса приложения, поднятого с заданными флагами.
+
+    Отдельный процесс нужен потому, что состав роутеров определяется при
+    импорте: в уже загруженном приложении флаг переключить нельзя, и проверка
+    в том же процессе проверяла бы не то.
+    """
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path as _Path
+
+    backend = _Path(__file__).resolve().parents[1]
+    code = (
+        "import sys, json; sys.path.insert(0, '.');"
+        "from app.main import app; print(json.dumps(sorted(app.openapi()['paths'])))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=backend,
+        env={**os.environ, **env, "PYTHONUTF8": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return set(json.loads(result.stdout.strip().splitlines()[-1]))
+
+
+OFF = {"ENABLE_VACANCY_EXPERIMENT": "false", "ENABLE_RECRUITER_PILOT": "false"}
+
+
+def test_disabled_stages_remove_the_routes_entirely():
+    """Выключено - значит адреса нет, а не кнопка спрятана."""
+    routes = _routes_with(OFF)
+
+    assert not [path for path in routes if "/api/recruiter" in path]
+    assert not [path for path in routes if "/api/plugin" in path]
+    assert not [path for path in routes if "/api/reveal" in path]
+    assert not [path for path in routes if "/api/calibration" in path]
+    assert not [path for path in routes if "/api/vacancies" in path]
+    assert not [path for path in routes if "/api/retention" in path]
+
+
+def test_candidate_core_works_with_later_stages_off():
+    """Модули 1-9 обязаны работать без второй стороны рынка вообще."""
+    routes = _routes_with(OFF)
+
+    for required in (
+        "/api/auth/login",
+        "/api/profile",
+        "/api/prof",
+        "/api/probe",
+        "/api/nda",
+        "/api/trust",
+        "/api/explanations",
+        "/api/moderation/queue",
+        "/api/growth",
+        "/api/export/pdf",
+    ):
+        assert required in routes, required
+
+
+def test_enabling_a_stage_brings_its_routes_back():
+    routes = _routes_with({"ENABLE_VACANCY_EXPERIMENT": "true", "ENABLE_RECRUITER_PILOT": "false"})
+
+    assert "/api/vacancies" in routes
+    assert not [path for path in routes if "/api/recruiter" in path]
+
+
+def test_candidate_core_has_no_switch():
+    """Ядро выключить нельзя: списка, из которого его можно убрать, нет."""
+    from app import stages
+
+    assert stages.CANDIDATE_CORE not in stages.STAGE_ROUTERS
+    assert set(stages.STAGE_ROUTERS) == {stages.VACANCY_EXPERIMENT, stages.RECRUITER_PILOT}
+
+
+def test_default_configuration_ships_candidate_core_only():
+    """По умолчанию - только ядро: пилот включают осознанно."""
+    from app.config import Settings
+
+    # Проверяются именно значения по умолчанию в описании настроек, а не
+    # созданный объект: в тестах этапы включены переменными окружения, и
+    # созданный объект показал бы их, а не поставку.
+    fields = Settings.model_fields
+    assert fields["enable_vacancy_experiment"].default is False
+    assert fields["enable_recruiter_pilot"].default is False
+
+
+def test_module_16_has_no_switch_because_it_has_no_code():
+    """Выключать нечего: модуль 16 не построен, и это осознанный результат."""
+    from app import stages
+
+    assert "aggregation" not in str(stages.STAGE_ROUTERS)
+    assert not [name for name in dir(stages) if "reverse" in name.lower()]

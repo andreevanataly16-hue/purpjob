@@ -19,6 +19,13 @@ os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{_db_file}"
 _uploads = Path(tempfile.mkdtemp()) / "uploads"
 os.environ["UPLOAD_DIR"] = str(_uploads)
 
+# В тестах включены все этапы продукта: проверять модули 10-15 надо независимо
+# от того, включены ли они в текущей поставке. Что выключение действительно
+# убирает их из приложения - проверяется отдельно, на отдельном процессе с
+# выключенными флагами (test_stabilization.py).
+os.environ["ENABLE_VACANCY_EXPERIMENT"] = "true"
+os.environ["ENABLE_RECRUITER_PILOT"] = "true"
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db import Base, engine  # noqa: E402

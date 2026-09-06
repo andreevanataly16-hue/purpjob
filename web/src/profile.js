@@ -7,7 +7,9 @@
 
 import './profile.css'
 import { api, apiUpload, errorText } from './api.js'
-import { applyProfile, clearProfile, getState, loadProfile, mutate, subscribe } from './store.js'
+import {
+  applyProfile, clearProfile, getState, loadProfile, mutate, setStages, subscribe
+} from './store.js'
 import { PROF_EXTRAS_SKELETON, PROF_SKELETON, initProf, renderProf, resetProf } from './prof.js'
 import { PROBE_SKELETON, initProbe, renderProbe, resetProbe } from './probe.js'
 import { NDA_SKELETON, initNda, renderNda, resetNda } from './nda.js'
@@ -77,6 +79,8 @@ const BLIND_WITNESS_QUESTION =
 /* ---------- временное состояние экрана (не данные, а что открыто) ---------- */
 
 const ui = {
+  // Какие этапы продукта включены на сервере.
+  stages: { vacancies: true, recruiter: true },
   parsed: null,
   rawInputId: null,
   expanded: new Set(),
@@ -109,7 +113,7 @@ function busy(button, state, pendingText) {
 
 /* ---------- разметка экрана ---------- */
 
-const SKELETON = `
+const SKELETON = ({ vacancies = true, recruiter = true } = {}) => `
   ${WHY_PANEL_SKELETON}
   <div class="counters" id="counters"></div>
 
@@ -119,9 +123,9 @@ const SKELETON = `
 
   ${PROF_EXTRAS_SKELETON}
 
-  ${RETENTION_SKELETON}
+  ${vacancies ? RETENTION_SKELETON : ''}
 
-  ${VACANCIES_SKELETON}
+  ${vacancies ? VACANCIES_SKELETON : ''}
 
   ${PROBE_SKELETON}
 
@@ -219,13 +223,13 @@ const SKELETON = `
     <p class="msg" id="map-msg"></p>
   </section>
 
-  ${REVEAL_SKELETON}
+  ${recruiter ? REVEAL_SKELETON : ''}
 
-  ${RECRUITER_SKELETON}
+  ${recruiter ? RECRUITER_SKELETON : ''}
 
-  ${PLUGIN_SKELETON}
+  ${recruiter ? PLUGIN_SKELETON : ''}
 
-  ${CALIBRATION_SKELETON}
+  ${recruiter ? CALIBRATION_SKELETON : ''}
 
   ${MODERATION_SKELETON}
 `
@@ -702,7 +706,22 @@ function onProfileInput(event) {
 export async function initProfile() {
   const root = $('profile-root')
   if (!root.dataset.ready) {
-    root.innerHTML = SKELETON
+    // Какие этапы продукта включены, знает сервер. Спрашиваем его, а не гадаем
+    // по 404: выключенный модуль должен отсутствовать на экране целиком, а не
+    // висеть пустым блоком с заголовком.
+    const stagesResult = await api('/api/stages')
+    const enabled = new Set(
+      (stagesResult.payload?.stages || [])
+        .filter(item => item.enabled)
+        .map(item => item.id)
+    )
+    ui.stages = {
+      vacancies: enabled.has('vacancy_experiment'),
+      recruiter: enabled.has('recruiter_pilot')
+    }
+
+    setStages(ui.stages)
+    root.innerHTML = SKELETON(ui.stages)
     root.dataset.ready = '1'
 
     $('parse-btn').addEventListener('click', runParse)
@@ -731,8 +750,8 @@ export async function initProfile() {
     initProbe({ getState, root })
     initNda({ getState, root })
     initTrust({ getState, root })
-    initRetention({ root })
-    initVacancies({
+    if (ui.stages.vacancies) initRetention({ root })
+    if (ui.stages.vacancies) initVacancies({
       getState,
       root,
       // Требование, которого нет ни в одном эталоне, закрывается только через
@@ -747,10 +766,12 @@ export async function initProfile() {
     initExport({ getState, root })
     initGrowth({ getState, root })
     initXai({ getState, root })
-    initReveal({ root })
-    initRecruiter({ root })
-    initPlugin({ root })
-    initCalibration({ root, rerender: renderRecruiter })
+    if (ui.stages.recruiter) {
+      initReveal({ root })
+      initRecruiter({ root })
+      initPlugin({ root })
+      initCalibration({ root, rerender: renderRecruiter })
+    }
     initModeration({ getState, root })
   }
 

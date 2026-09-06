@@ -122,7 +122,18 @@ function isVacancies(payload) {
 
 /* Лента пересчитывается вместе со всем остальным: совпадение - проекция
    PROF.индекса, и после закрытого пробела оно обязано измениться само. */
+/* Какие этапы продукта включены. Ставится один раз при запуске экрана из
+   ответа сервера: без этого выключенный модуль давал бы 404 на каждой
+   загрузке страницы — не поломка, но ровно тот мусор в консоли, который через
+   месяц принимают за настоящую ошибку. */
+const stages = { vacancies: true, recruiter: true }
+
+export function setStages(value) {
+  Object.assign(stages, value)
+}
+
 async function refreshVacancies() {
+  if (!stages.vacancies) return
   const result = await api('/api/vacancies')
   if (result.ok && isVacancies(result.payload)) vacancies = result.payload
 }
@@ -132,6 +143,7 @@ function isRetention(payload) {
 }
 
 async function refreshRetention() {
+  if (!stages.vacancies) return
   const result = await api('/api/retention')
   if (result.ok && isRetention(result.payload)) retention = result.payload
 }
