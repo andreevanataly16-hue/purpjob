@@ -254,12 +254,26 @@ def test_explanation_names_numbers_not_adjectives(signed_client):
     assert re.search(r"\d", component(payload, UNDERSTANDING)["explanation_ru"])
 
 
-def test_component_points_at_the_evidence_behind_it(signed_client):
+def test_component_points_at_the_evidence_actually_used(signed_client):
+    """FR2.2: компонент показывает доказательства, которые в него вошли.
+
+    Раньше этот тест проверял непротиворечивость, и она перечисляла все
+    доказательства профиля. После стабилизационного спринта она их не считает
+    вообще - количество источников непротиворечивость не доказывает, - поэтому
+    и список у неё пуст. Перечислять как «учтённое» то, что не считалось, было
+    бы противоречием самому себе.
+
+    Требование при этом не отменено: оно проверяется на компоненте, который
+    действительно опирается на доказательства.
+    """
     setup_candidate(signed_client)
     signed_client.post(LINK, json={"url": "https://github.com/nataly/billing"})
 
     payload = signed_client.get(TRUST).json()
-    assert component(payload, CONSISTENCY)["contributing_evidence_ids"]
+    assert component(payload, CONSISTENCY)["contributing_evidence_ids"] == []
+
+    understanding_component = component(payload, UNDERSTANDING)
+    assert isinstance(understanding_component["contributing_evidence_ids"], list)
 
 
 def test_repeat_evidence_is_explained_not_silently_absorbed():

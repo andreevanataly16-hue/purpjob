@@ -173,15 +173,22 @@ def test_zero_conclusion_says_there_is_no_evidence(signed_client):
 
 
 def test_multi_evidence_conclusion_shows_all_of_them(signed_client):
-    """FR2.3: частичное раскрытие запрещено так же, как отсутствие раскрытия."""
+    """FR2.3: частичное раскрытие запрещено так же, как отсутствие раскрытия.
+
+    Раньше примером служил компонент непротиворечивости. После
+    стабилизационного спринта он доказательства не считает - количество
+    источников непротиворечивость не доказывает, - поэтому требование
+    проверяется на любом выводе, за которым доказательства действительно
+    стоят. Само требование не менялось: показать надо все, а не удобные.
+    """
     setup_candidate(signed_client)
 
-    trust = signed_client.get(TRUST).json()
-    consistency = next(c for c in trust["components"] if c["component_id"] == "consistency")
-    assert len(consistency["contributing_evidence_ids"]) > 1
+    multi = [item for item in explanations(signed_client) if len(item["evidence_refs"]) > 1]
+    assert multi, "нужен вывод, опирающийся больше чем на одно доказательство"
 
-    detail = signed_client.get(f"{EXPLANATIONS}/{consistency['explanation_id']}").json()
-    assert len(detail["resolved_evidence"]) == len(consistency["contributing_evidence_ids"])
+    for item in multi:
+        detail = signed_client.get(f"{EXPLANATIONS}/{item['id']}").json()
+        assert len(detail["resolved_evidence"]) == len(item["evidence_refs"])
 
 
 def test_broken_ref_is_shown_as_broken_not_hidden(signed_client):

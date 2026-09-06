@@ -687,3 +687,15 @@ def test_module_16_has_no_switch_because_it_has_no_code():
 
     assert "aggregation" not in str(stages.STAGE_ROUTERS)
     assert not [name for name in dir(stages) if "reverse" in name.lower()]
+
+
+def test_consistency_lists_no_evidence_as_counted():
+    """Объяснение не должно перечислять как учтённое то, что не считалось.
+
+    Доказательства в этом компоненте не участвуют вовсе; список «учтённых»
+    источников рядом с таким расчётом читался бы как противоречие самому себе.
+    """
+    result = consistency([evidence() for _ in range(5)], 0, 1, 0)
+
+    assert result.contributing_evidence_ids == []
+    assert "Доказательств в профиле 5" in " ".join(result.notes_ru)

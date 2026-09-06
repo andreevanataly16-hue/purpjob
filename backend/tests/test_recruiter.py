@@ -104,8 +104,20 @@ def test_consent_opens_the_evidence_drill_down(recruiter_client):
         f"{CANDIDATES}/{with_consent.id}", params={"vacancy_id": VACANCY}
     ).json()
 
-    assert any(item["evidence_refs"] for item in detail["trust_components"])
+    # Согласие управляет глубиной показа, и проверяется именно оно. Пустой
+    # список ссылок у отдельного компонента - не признак закрытости: после
+    # стабилизационного спринта непротиворечивость доказательства не считает
+    # вовсе, и перечислять их у неё было бы неправдой.
     assert all(item["evidence_visible"] for item in detail["trust_components"])
+
+    without_consent = next(
+        item for item in pool.visible_pool() if not item.consent_for_recruiter_view
+    )
+    closed = recruiter_client.get(
+        f"{CANDIDATES}/{without_consent.id}", params={"vacancy_id": VACANCY}
+    ).json()
+    assert not any(item["evidence_visible"] for item in closed["trust_components"])
+    assert not any(item["evidence_refs"] for item in closed["trust_components"])
 
 
 # --- отклонённые находки ----------------------------------------------------

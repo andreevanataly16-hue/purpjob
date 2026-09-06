@@ -112,6 +112,7 @@ async function refreshDisputes() {
 }
 
 async function refreshModeration() {
+  if (!stages.moderator) return
   const result = await api('/api/moderation/queue')
   if (result.ok && isQueue(result.payload)) moderation = result.payload
 }
@@ -126,7 +127,7 @@ function isVacancies(payload) {
    ответа сервера: без этого выключенный модуль давал бы 404 на каждой
    загрузке страницы — не поломка, но ровно тот мусор в консоли, который через
    месяц принимают за настоящую ошибку. */
-const stages = { vacancies: true, recruiter: true }
+const stages = { vacancies: true, recruiter: true, moderator: true }
 
 export function setStages(value) {
   Object.assign(stages, value)

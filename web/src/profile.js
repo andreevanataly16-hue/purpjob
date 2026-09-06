@@ -113,7 +113,7 @@ function busy(button, state, pendingText) {
 
 /* ---------- разметка экрана ---------- */
 
-const SKELETON = ({ vacancies = true, recruiter = true } = {}) => `
+const SKELETON = ({ vacancies = true, recruiter = true, moderator = true } = {}) => `
   ${WHY_PANEL_SKELETON}
   <div class="counters" id="counters"></div>
 
@@ -231,7 +231,7 @@ const SKELETON = ({ vacancies = true, recruiter = true } = {}) => `
 
   ${recruiter ? CALIBRATION_SKELETON : ''}
 
-  ${MODERATION_SKELETON}
+  ${moderator ? MODERATION_SKELETON : ''}
 `
 
 /* ---------- отрисовка данных ---------- */
@@ -715,9 +715,16 @@ export async function initProfile() {
         .filter(item => item.enabled)
         .map(item => item.id)
     )
+    // Роль решает, что человеку вообще показывать. Права при этом проверяет
+    // сервер: здесь мы просто не рисуем разделы, которыми пользоваться нельзя,
+    // — иначе кандидат видел бы очередь модератора, отвечающую ему 403.
+    const me = await api('/api/auth/me')
+    const role = me.payload?.role || 'candidate'
+
     ui.stages = {
       vacancies: enabled.has('vacancy_experiment'),
-      recruiter: enabled.has('recruiter_pilot')
+      recruiter: enabled.has('recruiter_pilot') && role === 'recruiter',
+      moderator: role === 'moderator'
     }
 
     setStages(ui.stages)
@@ -772,7 +779,7 @@ export async function initProfile() {
       initPlugin({ root })
       initCalibration({ root, rerender: renderRecruiter })
     }
-    initModeration({ getState, root })
+    if (ui.stages.moderator) initModeration({ getState, root })
   }
 
   document.querySelector('.card').classList.add('wide')
