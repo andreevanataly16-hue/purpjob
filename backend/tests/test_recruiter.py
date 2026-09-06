@@ -36,30 +36,30 @@ def test_hidden_candidate_is_absent_from_the_pool_itself():
     assert all(item.id not in visible_ids for item in hidden)
 
 
-def test_hidden_candidate_never_appears_in_search(signed_client):
-    payload = search(signed_client)
+def test_hidden_candidate_never_appears_in_search(recruiter_client):
+    payload = search(recruiter_client)
     hidden_ids = {item.id for item in pool.ALL if item.visibility_mode == "hidden"}
 
     assert payload["candidates"]
     assert not {item["candidate_id"] for item in payload["candidates"]} & hidden_ids
 
 
-def test_hidden_candidate_is_unreachable_by_direct_link(signed_client):
+def test_hidden_candidate_is_unreachable_by_direct_link(recruiter_client):
     """FR2.3: та же защита ещё раз на карточке, а не «поиск уже отфильтровал»."""
     hidden = next(item for item in pool.ALL if item.visibility_mode == "hidden")
 
-    response = signed_client.get(
+    response = recruiter_client.get(
         f"{CANDIDATES}/{hidden.id}", params={"vacancy_id": VACANCY}
     )
     assert response.status_code == 404
 
 
-def test_hidden_candidate_is_unreachable_through_comparison(signed_client):
+def test_hidden_candidate_is_unreachable_through_comparison(recruiter_client):
     """FR5.3: сравнение не должно стать вторым входом мимо гейта."""
     hidden = next(item for item in pool.ALL if item.visibility_mode == "hidden")
     visible = pool.visible_pool()[0]
 
-    response = signed_client.get(
+    response = recruiter_client.get(
         COMPARE, params={"vacancy_id": VACANCY, "ids": f"{visible.id},{hidden.id}"}
     )
     assert response.status_code == 404
@@ -75,7 +75,7 @@ def test_there_is_no_override_to_show_hidden_candidates():
 # --- согласие управляет только глубиной ------------------------------------
 
 
-def test_consent_controls_evidence_depth_not_visibility(signed_client):
+def test_consent_controls_evidence_depth_not_visibility(recruiter_client):
     """FR-Priv.2: два разных гейта, и один не подменяет другой."""
     without = next(
         item for item in pool.visible_pool() if not item.consent_for_recruiter_view
@@ -83,10 +83,10 @@ def test_consent_controls_evidence_depth_not_visibility(signed_client):
 
     # Профиль виден, потому что виден режим — согласие тут ни при чём.
     assert any(
-        item["candidate_id"] == without.id for item in search(signed_client)["candidates"]
+        item["candidate_id"] == without.id for item in search(recruiter_client)["candidates"]
     )
 
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{without.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -96,11 +96,11 @@ def test_consent_controls_evidence_depth_not_visibility(signed_client):
     assert "не открывал сами доказательства" in detail["consent_note_ru"]
 
 
-def test_consent_opens_the_evidence_drill_down(signed_client):
+def test_consent_opens_the_evidence_drill_down(recruiter_client):
     with_consent = next(
         item for item in pool.visible_pool() if item.consent_for_recruiter_view
     )
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{with_consent.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -131,32 +131,32 @@ def test_declined_findings_do_not_exist_in_this_module():
 # --- US1: поиск -------------------------------------------------------------
 
 
-def test_search_ranks_by_match_and_filters(signed_client):
-    payload = search(signed_client)
+def test_search_ranks_by_match_and_filters(recruiter_client):
+    payload = search(recruiter_client)
     scores = [item["match_score"] for item in payload["candidates"]]
     assert scores == sorted(scores, reverse=True)
 
-    strict = search(signed_client, min_trust_score=75)
+    strict = search(recruiter_client, min_trust_score=75)
     assert all(item["trust_score"] >= 75 for item in strict["candidates"])
     assert len(strict["candidates"]) <= len(payload["candidates"])
 
 
-def test_search_can_be_sorted_by_each_axis(signed_client):
+def test_search_can_be_sorted_by_each_axis(recruiter_client):
     for key in ("match_score", "trust_score", "prof_index"):
-        payload = search(signed_client, sort_by=key)
+        payload = search(recruiter_client, sort_by=key)
         values = [item[key] for item in payload["candidates"]]
         assert values == sorted(values, reverse=True)
 
-    bad = signed_client.get(SEARCH, params={"vacancy_id": VACANCY, "sort_by": "nonsense"})
+    bad = recruiter_client.get(SEARCH, params={"vacancy_id": VACANCY, "sort_by": "nonsense"})
     assert bad.status_code == 400
 
 
-def test_search_is_scoped_to_an_existing_vacancy(signed_client):
-    assert signed_client.get(SEARCH, params={"vacancy_id": "vac_999"}).status_code == 404
+def test_search_is_scoped_to_an_existing_vacancy(recruiter_client):
+    assert recruiter_client.get(SEARCH, params={"vacancy_id": "vac_999"}).status_code == 404
 
 
-def test_level_filter_narrows_the_pool(signed_client):
-    payload = search(signed_client, level="Senior")
+def test_level_filter_narrows_the_pool(recruiter_client):
+    payload = search(recruiter_client, level="Senior")
     assert all("Senior" in item["levels"] for item in payload["candidates"])
 
 
@@ -170,10 +170,10 @@ def test_module_never_reaches_out_to_candidates():
 # --- US2/US4: карточка ------------------------------------------------------
 
 
-def test_detail_shows_the_same_data_the_candidate_sees(signed_client):
+def test_detail_shows_the_same_data_the_candidate_sees(recruiter_client):
     """FR2.1: не упрощённая версия для рекрутера, а та же структура."""
     candidate = pool.visible_pool()[0]
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -199,10 +199,10 @@ def test_scores_are_computed_by_the_same_engines_not_stored():
             assert forbidden not in raw, forbidden
 
 
-def test_breakdown_is_never_collapsed_into_one_number(signed_client):
+def test_breakdown_is_never_collapsed_into_one_number(recruiter_client):
     """FR4.1: и компетенции, и требования вакансии — по отдельности."""
     candidate = pool.visible_pool()[0]
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -211,10 +211,10 @@ def test_breakdown_is_never_collapsed_into_one_number(signed_client):
     assert all(item["explanation_ru"] for item in detail["covered"] + detail["uncovered"])
 
 
-def test_wording_stays_factual_and_never_judges_the_person(signed_client):
+def test_wording_stays_factual_and_never_judges_the_person(recruiter_client):
     """FR4.2: «требует дополнительной проверки», а не «слабое место»."""
     for candidate in pool.visible_pool():
-        detail = signed_client.get(
+        detail = recruiter_client.get(
             f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
         ).json()
         texts = [item["explanation_ru"] for item in detail["covered"] + detail["uncovered"]]
@@ -227,9 +227,9 @@ def test_wording_stays_factual_and_never_judges_the_person(signed_client):
                 assert forbidden not in lowered, text
 
 
-def test_uncovered_requirement_says_it_needs_more_checking(signed_client):
+def test_uncovered_requirement_says_it_needs_more_checking(recruiter_client):
     candidate = pool.visible_pool()[0]
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -240,10 +240,10 @@ def test_uncovered_requirement_says_it_needs_more_checking(signed_client):
     )
 
 
-def test_unevaluated_cluster_is_not_mistaken_for_absence(signed_client):
+def test_unevaluated_cluster_is_not_mistaken_for_absence(recruiter_client):
     """FR4.3: та же формулировка, что видит кандидат."""
     candidate = pool.visible_pool()[0]
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": "vac_003"}
     ).json()
 
@@ -251,10 +251,10 @@ def test_unevaluated_cluster_is_not_mistaken_for_absence(signed_client):
     assert "не значит" in detail["unevaluated_note_ru"]
 
 
-def test_nda_evidence_is_marked_neutrally(signed_client):
+def test_nda_evidence_is_marked_neutrally(recruiter_client):
     """FR3.4: подтверждение под NDA не выглядит хуже прочих."""
     with_nda = next(item for item in pool.visible_pool() if item.nda_confirmations)
-    detail = signed_client.get(
+    detail = recruiter_client.get(
         f"{CANDIDATES}/{with_nda.id}", params={"vacancy_id": VACANCY}
     ).json()
 
@@ -263,10 +263,10 @@ def test_nda_evidence_is_marked_neutrally(signed_client):
         assert forbidden not in detail["nda_note_ru"].lower()
 
 
-def test_trust_is_never_shown_as_a_bare_number(signed_client):
+def test_trust_is_never_shown_as_a_bare_number(recruiter_client):
     """FR3.1: у каждого компонента — своё объяснение."""
     for candidate in pool.visible_pool():
-        detail = signed_client.get(
+        detail = recruiter_client.get(
             f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
         ).json()
         assert detail["trust_components"]
@@ -276,19 +276,19 @@ def test_trust_is_never_shown_as_a_bare_number(signed_client):
 # --- US5: сравнение ---------------------------------------------------------
 
 
-def test_comparison_uses_one_identical_structure(signed_client):
+def test_comparison_uses_one_identical_structure(recruiter_client):
     ids = ",".join(item.id for item in pool.visible_pool()[:3])
-    payload = signed_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": ids}).json()
+    payload = recruiter_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": ids}).json()
 
     assert len(payload["candidates"]) == 3
     shapes = {tuple(sorted(item.keys())) for item in payload["candidates"]}
     assert len(shapes) == 1
 
 
-def test_comparison_keeps_the_breakdown_not_only_numbers(signed_client):
+def test_comparison_keeps_the_breakdown_not_only_numbers(recruiter_client):
     """FR5.2: сравнение голых чисел вернуло бы непрозрачную сортировку."""
     ids = ",".join(item.id for item in pool.visible_pool()[:2])
-    payload = signed_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": ids}).json()
+    payload = recruiter_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": ids}).json()
 
     for item in payload["candidates"]:
         assert item["prof_components"]
@@ -296,17 +296,17 @@ def test_comparison_keeps_the_breakdown_not_only_numbers(signed_client):
         assert item["trust_components"]
 
 
-def test_comparison_needs_at_least_one_candidate(signed_client):
+def test_comparison_needs_at_least_one_candidate(recruiter_client):
     assert (
-        signed_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": " "}).status_code == 400
+        recruiter_client.get(COMPARE, params={"vacancy_id": VACANCY, "ids": " "}).status_code == 400
     )
 
 
 # --- режим без ролей --------------------------------------------------------
 
 
-def test_recruiter_mode_is_flagged_as_not_production_safe(signed_client):
-    payload = search(signed_client)
+def test_recruiter_mode_is_flagged_as_not_production_safe(recruiter_client):
+    payload = search(recruiter_client)
     assert "без доступа и без ролей" in payload["not_production_safe_ru"]
     assert "кто кого смотрел" in payload["not_production_safe_ru"]
 
@@ -319,14 +319,14 @@ def test_module_computes_nothing_of_its_own():
     assert "library.compute" in source
 
 
-def test_recruiter_copy_never_addresses_the_candidate(signed_client):
+def test_recruiter_copy_never_addresses_the_candidate(recruiter_client):
     """Разбор пришёл из модуля 10, где он писался для самого кандидата.
 
     На рекрутерском экране «в вашем профиле» читается как обращение не к тому
     человеку — факты те же, адресат другой.
     """
     for candidate in pool.visible_pool():
-        detail = signed_client.get(
+        detail = recruiter_client.get(
             f"{CANDIDATES}/{candidate.id}", params={"vacancy_id": VACANCY}
         ).json()
 

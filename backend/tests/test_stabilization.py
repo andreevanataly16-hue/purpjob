@@ -344,3 +344,174 @@ def test_freshness_data_is_kept_for_the_future():
     """Данные актуальности остаются - убрано только их влияние на балл."""
     assert hasattr(growth, "freshness_for")
     assert CompetencyFreshness.__tablename__ == "competency_freshness"
+
+
+# --- 5. Роли и разграничение доступа --------------------------------------
+
+
+def test_registration_gives_the_least_privileged_role(signed_client):
+    """Регистрация не должна выдавать прав над чужими данными."""
+    from app.access import CANDIDATE, role_of
+    from app.models import User
+
+    with SessionLocal() as db:
+        user = db.query(User).first()
+        assert user.role == CANDIDATE
+        assert role_of(user) == CANDIDATE
+
+
+def test_candidate_cannot_reach_recruiter_routes(signed_client):
+    """Прямой запрос к API, а не спрятанная кнопка."""
+    assert signed_client.get("/api/recruiter/search", params={"vacancy_id": "vac_001"}).status_code == 403
+    assert signed_client.get(
+        "/api/recruiter/candidates/cand_001", params={"vacancy_id": "vac_001"}
+    ).status_code == 403
+    assert signed_client.post("/api/plugin/lookup", json={"contact_hash": "x" * 71}).status_code == 403
+
+
+def test_candidate_cannot_reach_moderator_routes(signed_client):
+    assert signed_client.get("/api/moderation/queue").status_code == 403
+    assert signed_client.post(
+        "/api/moderation/cases/dc_001/uphold", json={"rationale_ru": "потому что"}
+    ).status_code == 403
+
+
+def test_candidate_cannot_reach_the_operator_dashboard(signed_client):
+    assert signed_client.get("/api/calibration").status_code == 403
+    assert signed_client.post(
+        "/api/calibration/changes",
+        json={"constant_ref": "module8.decay_countdown_days", "new_value": "1", "rationale_ru": "нет"},
+    ).status_code == 403
+
+
+def test_recruiter_cannot_perform_moderator_actions(recruiter_client):
+    """Роли не наследуются: рекрутер не становится модератором."""
+    assert recruiter_client.get("/api/moderation/queue").status_code == 403
+    assert recruiter_client.post(
+        "/api/moderation/cases/dc_001/override",
+        json={
+            "target_type": "trust_component_score",
+            "target_id": "understanding",
+            "new_value": "100",
+            "rationale_ru": "хочется",
+        },
+    ).status_code == 403
+    assert recruiter_client.get("/api/calibration").status_code == 403
+
+
+def test_moderator_does_not_get_recruiter_capabilities(moderator_client):
+    """И наоборот: у модератора нет причины смотреть базу кандидатов."""
+    assert moderator_client.get(
+        "/api/recruiter/search", params={"vacancy_id": "vac_001"}
+    ).status_code == 403
+    assert moderator_client.post(
+        "/api/plugin/invites", json={"note_ru": None}
+    ).status_code == 403
+
+
+def test_role_from_the_request_body_is_ignored(signed_client):
+    """Роль определяется на сервере, и подменить её запросом нельзя."""
+    for attempt in (
+        {"role": "moderator"},
+        {"actor_role": "moderator"},
+        {"user": {"role": "moderator"}},
+    ):
+        response = signed_client.post("/api/moderation/cases/dc_001/uphold", json={**attempt, "rationale_ru": "x"})
+        assert response.status_code == 403
+
+    # И заголовком тоже.
+    assert signed_client.get(
+        "/api/moderation/queue", headers={"X-Role": "moderator", "Role": "moderator"}
+    ).status_code == 403
+
+
+def test_guards_sit_on_routers_not_on_handlers():
+    """Забыть проверку на новом обработчике проще, чем забыть завести роутер."""
+    from app.routers import calibration, moderation, plugin, recruiter
+
+    for module in (moderation, recruiter, plugin):
+        source = inspect.getsource(module)
+        assert "dependencies=[Depends(require_" in source
+
+    operator = inspect.getsource(calibration)
+    assert "dependencies=[Depends(require_moderator)]" in operator
+    assert "dependencies=[Depends(require_recruiter)]" in operator
+
+
+def test_there_is_no_endpoint_that_grants_a_role():
+    """«Стать модератором» запросом нельзя: такого пути нет вообще.
+
+    Проверяется не слово «role» в адресе - `/api/prof/roles` про целевую роль
+    кандидата (Middle, Senior) и к правам отношения не имеет, - а отсутствие
+    записи роли где-либо в обработчиках.
+    """
+    from app.main import app
+
+    paths = app.openapi()["paths"]
+    for path in paths:
+        assert "/api/roles" not in path
+        assert "grant" not in path.lower()
+        assert "permission" not in path.lower()
+
+    # Ни один обработчик не присваивает роль: это делает только скрипт
+    # администратора, работающий с базой напрямую.
+    from pathlib import Path as _Path
+
+    routers = _Path(__file__).resolve().parents[1] / "app" / "routers"
+    for module in routers.glob("*.py"):
+        source = module.read_text(encoding="utf-8")
+        assert ".role =" not in source, module.name
+        assert "user.role" not in source, module.name
+
+
+# --- 6. Журнал обращений ---------------------------------------------------
+
+
+def test_sensitive_access_leaves_an_audit_entry(recruiter_client):
+    from app.models import AccessLog
+
+    recruiter_client.get("/api/recruiter/search", params={"vacancy_id": "vac_001"})
+
+    with SessionLocal() as db:
+        entries = db.query(AccessLog).all()
+        assert entries
+        entry = entries[-1]
+        assert entry.actor_role == "recruiter"
+        assert "/api/recruiter/search" in entry.action
+        assert entry.at is not None
+
+
+def test_moderator_actions_are_logged_too(moderator_client):
+    from app.models import AccessLog
+
+    moderator_client.get("/api/moderation/queue")
+
+    with SessionLocal() as db:
+        roles = {entry.actor_role for entry in db.query(AccessLog).all()}
+        assert "moderator" in roles
+
+
+def test_candidate_browsing_own_profile_is_not_logged(signed_client):
+    """Журнал - про обращение к чужим данным, а не тотальная слежка."""
+    from app.models import AccessLog
+
+    signed_client.get("/api/profile")
+    signed_client.get("/api/trust")
+
+    with SessionLocal() as db:
+        assert db.query(AccessLog).count() == 0
+
+
+def test_audit_log_stores_no_content():
+    """В журнал не должно попадать то, что кандидат закрыл под NDA."""
+    from app.models import AccessLog
+
+    fields = set(AccessLog.__table__.columns.keys())
+    for forbidden in ("body", "payload", "raw_text", "evidence", "content"):
+        assert forbidden not in fields
+
+    from app import access
+
+    source = inspect.getsource(access)
+    assert "await request.body()" not in source
+    assert "request.json()" not in source

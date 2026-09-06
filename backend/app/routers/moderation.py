@@ -40,6 +40,7 @@ from app.models import (
     ModeratorOverride,
     User,
 )
+from app.access import require_moderator
 from app.routers.auth import current_user
 from app.routers.profile import parse_id, public_id
 from app.routers.xai import (
@@ -56,7 +57,13 @@ from app.routers.xai import (
 )
 from app.schemas_xai import InfoRequestIn, ModerationActionIn, OverrideIn, QueueOut
 
-router = APIRouter(prefix="/api/moderation", tags=["moderation"])
+# Страж навешан на роутер целиком, а не на отдельные обработчики: забыть
+# добавить проверку на новый обработчик проще, чем забыть завести роутер.
+router = APIRouter(
+    prefix="/api/moderation",
+    tags=["moderation"],
+    dependencies=[Depends(require_moderator)],
+)
 
 NOT_PRODUCTION_SAFE_RU = (
     "Режим модератора без доступа и без ролей: сейчас его может открыть любой вошедший, "

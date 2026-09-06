@@ -40,6 +40,11 @@ class User(Base):
     # Хеш пароля (scrypt), не сам пароль.
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
+    # Роль. Хранится здесь и только здесь: роль, присланную клиентом в запросе,
+    # читать нельзя ни при каких условиях. По умолчанию кандидат - регистрация
+    # не должна выдавать прав над чужими данными.
+    role: Mapped[str] = mapped_column(String(20), default="candidate", nullable=False)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -1158,5 +1163,30 @@ class VerificationInvite(Base):
     status: Mapped[str] = mapped_column(String(20), default="generated", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class AccessLog(Base):
+    """След обращения к чужим данным (роли рекрутера и модератора).
+
+    Отвечает на вопрос «кто, что, над кем и когда», и только на него.
+    Содержимого здесь нет намеренно: журнал доступа не должен становиться
+    вторым местом, где лежит то, что кандидат закрыл под NDA.
+    """
+
+    __tablename__ = "access_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    actor_role: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    action: Mapped[str] = mapped_column(String(200), nullable=False)
+    target: Mapped[str] = mapped_column(String(120), default="-", nullable=False)
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

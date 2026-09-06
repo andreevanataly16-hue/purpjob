@@ -56,6 +56,7 @@ app.include_router(vacancies.router)
 app.include_router(retention.router)
 app.include_router(recruiter.router)
 app.include_router(reveal.router)
+app.include_router(calibration.feedback_router)
 app.include_router(calibration.router)
 app.include_router(plugin.router)
 

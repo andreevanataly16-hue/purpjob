@@ -101,13 +101,13 @@ def test_express_thresholds_are_named_constants():
 # --- US2: требования вакансии ----------------------------------------------
 
 
-def test_vacancy_extraction_reuses_the_taxonomy(signed_client):
+def test_vacancy_extraction_reuses_the_taxonomy(recruiter_client):
     """FR2.1: разбор идёт по образцам модуля 2, а не по второму набору правил."""
     source = inspect.getsource(requirements)
     assert "from app.taxonomy import" in source
     assert "competency.regexes" in source
 
-    payload = signed_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
+    payload = recruiter_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
     labels = [item["label_ru"] for item in payload["requirements"]]
 
     assert "Python" in labels
@@ -131,9 +131,9 @@ def test_requirements_outside_the_library_are_named_not_dropped():
     assert "ClickHouse" in unknown
 
 
-def test_every_requirement_carries_an_evidence_hint(signed_client):
+def test_every_requirement_carries_an_evidence_hint(recruiter_client):
     """FR2.2: подсказка, чем это подтверждается, — у каждого пункта."""
-    payload = signed_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
+    payload = recruiter_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
 
     assert payload["requirements"]
     for item in payload["requirements"]:
@@ -149,30 +149,30 @@ def test_extraction_never_generates_a_live_question():
         assert "generate_question" not in source
 
 
-def test_mandatory_requirements_come_first(signed_client):
+def test_mandatory_requirements_come_first(recruiter_client):
     """FR2.3: тот же приоритет, что у белых пятен и рекомендаций."""
-    payload = signed_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
+    payload = recruiter_client.post(f"{PLUGIN}/vacancy", json={"raw_text": VACANCY_TEXT}).json()
     order = [item["criticality"] for item in payload["requirements"]]
 
     assert order == sorted(order, key=lambda value: 0 if value == MANDATORY else 1)
 
 
-def test_empty_vacancy_text_says_why(signed_client):
-    assert signed_client.post(f"{PLUGIN}/vacancy", json={"raw_text": "  "}).status_code == 400
+def test_empty_vacancy_text_says_why(recruiter_client):
+    assert recruiter_client.post(f"{PLUGIN}/vacancy", json={"raw_text": "  "}).status_code == 400
 
 
 # --- US4: «Найти в базе» и светофор ----------------------------------------
 
 
-def test_lookup_accepts_only_a_hash(signed_client):
+def test_lookup_accepts_only_a_hash(recruiter_client):
     """FR-Priv.2: на сервер уходит хеш, а не контакт."""
-    refused = signed_client.post(f"{PLUGIN}/lookup", json={"contact_hash": "ivan@example.com"})
+    refused = recruiter_client.post(f"{PLUGIN}/lookup", json={"contact_hash": "ivan@example.com"})
     assert refused.status_code == 422
 
 
-def test_registered_candidate_gets_the_green_tier(signed_client):
+def test_registered_candidate_gets_the_green_tier(recruiter_client):
     candidate = pool.visible_pool()[0]
-    payload = signed_client.post(
+    payload = recruiter_client.post(
         f"{PLUGIN}/lookup", json={"contact_hash": hashed(candidate.display_name)}
     ).json()
 
@@ -181,8 +181,8 @@ def test_registered_candidate_gets_the_green_tier(signed_client):
     assert payload["tier_label_ru"] == "Верифицирован"
 
 
-def test_unknown_person_gets_the_grey_tier_and_no_number(signed_client):
-    payload = signed_client.post(
+def test_unknown_person_gets_the_grey_tier_and_no_number(recruiter_client):
+    payload = recruiter_client.post(
         f"{PLUGIN}/lookup", json={"contact_hash": hashed("никого-с-таким-именем-нет")}
     ).json()
 
@@ -192,7 +192,7 @@ def test_unknown_person_gets_the_grey_tier_and_no_number(signed_client):
     assert payload["tier_note_ru"] == "Кандидат не зарегистрирован"
 
 
-def test_lookup_leaves_no_trace(signed_client):
+def test_lookup_leaves_no_trace(recruiter_client):
     """FR-Priv.3: «искали этого человека» — уже персональные данные."""
     source = inspect.getsource(router)
     lookup_body = source[source.index("def lookup") : source.index("def create_invite")]
@@ -201,8 +201,8 @@ def test_lookup_leaves_no_trace(signed_client):
     assert "db.commit(" not in lookup_body
 
 
-def test_three_tiers_use_the_agreed_wording(signed_client):
-    payload = signed_client.get(PLUGIN).json()
+def test_three_tiers_use_the_agreed_wording(recruiter_client):
+    payload = recruiter_client.get(PLUGIN).json()
     labels = {item["tier"]: item["label_ru"] for item in payload["tiers"]}
 
     assert labels == {
@@ -216,7 +216,7 @@ def test_three_tiers_use_the_agreed_wording(signed_client):
     assert "не «шпион»" in payload["lens_ru"]
 
 
-def test_verified_tier_reuses_module_12_rendering(signed_client):
+def test_verified_tier_reuses_module_12_rendering(recruiter_client):
     """FR4.3: свой показ PROF и Trust плагин не строит — он ведёт в модуль 12."""
     source = inspect.getsource(router)
 
@@ -240,9 +240,9 @@ def test_progressive_reveal_is_not_applied_here():
 # --- US3: приглашение ------------------------------------------------------
 
 
-def test_invite_is_generated_but_never_sent(signed_client):
+def test_invite_is_generated_but_never_sent(recruiter_client):
     """FR3.2: то же правило, что у экспорта в модуле 9, только с другой стороны."""
-    response = signed_client.post(f"{PLUGIN}/invites", json={"note_ru": None})
+    response = recruiter_client.post(f"{PLUGIN}/invites", json={"note_ru": None})
     assert response.status_code == 201
 
     payload = response.json()
@@ -260,8 +260,8 @@ def test_invite_model_has_no_recipient_or_delivery_field():
         assert forbidden not in fields
 
 
-def test_invite_is_recorded_for_the_recruiter_only(signed_client):
-    signed_client.post(f"{PLUGIN}/invites", json={"note_ru": "по вакансии платежей"})
+def test_invite_is_recorded_for_the_recruiter_only(recruiter_client):
+    recruiter_client.post(f"{PLUGIN}/invites", json={"note_ru": "по вакансии платежей"})
 
     with SessionLocal() as db:
         rows = db.query(VerificationInvite).all()

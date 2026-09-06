@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from app import candidates as pool, requirements
 from app.db import get_db
 from app.models import User, VerificationInvite
+from app.access import require_recruiter
 from app.routers.auth import current_user
 from app.schemas_plugin import (
     ExtractionOut,
@@ -40,7 +41,11 @@ from app.schemas_plugin import (
     PluginInfoOut,
 )
 
-router = APIRouter(prefix="/api/plugin", tags=["plugin"])
+router = APIRouter(
+    prefix="/api/plugin",
+    tags=["plugin"],
+    dependencies=[Depends(require_recruiter)],
+)
 
 # --- три честных состояния светофора (§3 FRD, формулировки дословные) ------
 

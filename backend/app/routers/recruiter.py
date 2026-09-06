@@ -31,11 +31,16 @@ from app import candidates as pool, growth, reveal, vacancies as library
 from app.candidates import SeedCandidate
 from app.db import get_db
 from app.models import ReturnTrigger, RevealState, User
+from app.access import require_recruiter
 from app.routers.auth import current_user
 from app.schemas_recruiter import CompareOut, CandidateDetailOut, RevealOut, SearchOut
 from app.vacancies import CompetencyState
 
-router = APIRouter(prefix="/api/recruiter", tags=["recruiter"])
+router = APIRouter(
+    prefix="/api/recruiter",
+    tags=["recruiter"],
+    dependencies=[Depends(require_recruiter)],
+)
 
 NOT_PRODUCTION_SAFE_RU = (
     "Режим рекрутера без доступа и без ролей: его может открыть любой вошедший, и нигде не "

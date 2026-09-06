@@ -288,7 +288,7 @@ def queue(client, include_resolved=False):
     return client.get(QUEUE, params={"include_resolved": include_resolved}).json()
 
 
-def test_queue_shows_all_origins_in_one_place(signed_client):
+def test_queue_shows_all_origins_in_one_place(signed_client, moderator_client):
     """FR4.1: модератор не должен ходить по трём спискам за одним и тем же."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
@@ -299,25 +299,25 @@ def test_queue_shows_all_origins_in_one_place(signed_client):
         case.origin = "sampled_audit"
         db.commit()
 
-    payload = queue(signed_client)
+    payload = queue(moderator_client)
     assert payload["open_count"] == 1
     assert payload["cases"][0]["origin"] == "sampled_audit"
 
 
-def test_moderator_sees_exactly_what_the_candidate_saw(signed_client):
+def test_moderator_sees_exactly_what_the_candidate_saw(signed_client, moderator_client):
     """FR4.2: не отдельный «внутренний» вид, а тот же вывод и те же ссылки."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     detail = signed_client.get(f"{EXPLANATIONS}/{target['id']}").json()
     open_dispute(signed_client, target["id"])
 
-    case = queue(signed_client)["cases"][0]
+    case = queue(moderator_client)["cases"][0]
     assert case["conclusion_ru"] == detail["conclusion_ru"]
     assert case["evidence_refs"] == detail["evidence_refs"]
     assert len(case["resolved_evidence"]) == len(detail["resolved_evidence"])
 
 
-def test_moderator_view_is_frozen_at_dispute_time(signed_client):
+def test_moderator_view_is_frozen_at_dispute_time(signed_client, moderator_client):
     """Индекс пересчитывается: без копии модератор разбирал бы уже другой вывод."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
@@ -329,19 +329,19 @@ def test_moderator_view_is_frozen_at_dispute_time(signed_client):
         ACCEPT, json={"raw_input_id": parsed["raw_input_id"], "items": parsed["items"]}
     )
 
-    assert queue(signed_client)["cases"][0]["conclusion_ru"] == original
+    assert queue(moderator_client)["cases"][0]["conclusion_ru"] == original
 
 
-def test_uphold_requires_a_reason(signed_client):
+def test_uphold_requires_a_reason(signed_client, moderator_client):
     """FR4.3a: «проверили, всё верно» без причины - отписка, а не решение."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
 
-    empty = signed_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": ""})
+    empty = moderator_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": ""})
     assert empty.status_code == 422
 
-    ok = signed_client.post(
+    ok = moderator_client.post(
         f"/api/moderation/cases/{case_id}/uphold",
         json={"rationale_ru": "Проверил три источника — все из одной категории, расчёт верен."},
     )
@@ -352,13 +352,13 @@ def test_uphold_requires_a_reason(signed_client):
     assert any(entry["event_type"] == "moderator_note_added" for entry in case["history"])
 
 
-def test_request_info_asks_a_named_question(signed_client):
+def test_request_info_asks_a_named_question(signed_client, moderator_client):
     """FR4.3b: конкретный вопрос, а не «уточните, пожалуйста»."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/request-info",
         json={"question_ru": "Из какого репозитория взята ссылка ev_002?"},
     )
@@ -368,11 +368,11 @@ def test_request_info_asks_a_named_question(signed_client):
     assert case["info_request_ru"].startswith("Из какого репозитория")
 
 
-def test_candidate_can_answer_and_the_case_returns_to_the_queue(signed_client):
+def test_candidate_can_answer_and_the_case_returns_to_the_queue(signed_client, moderator_client):
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/request-info", json={"question_ru": "Откуда ссылка?"}
     )
 
@@ -383,14 +383,14 @@ def test_candidate_can_answer_and_the_case_returns_to_the_queue(signed_client):
     assert any(entry["event_type"] == "candidate_responded" for entry in case["history"])
 
 
-def test_override_requires_a_reason_and_changes_the_value(signed_client):
+def test_override_requires_a_reason_and_changes_the_value(signed_client, moderator_client):
     """FR4.3c: правка только с причиной - и она действительно меняет вывод."""
     setup_candidate(signed_client)
     trust_before = signed_client.get(TRUST).json()
     component = next(c for c in trust_before["components"] if c["component_id"] == "understanding")
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    without_reason = signed_client.post(
+    without_reason = moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -401,7 +401,7 @@ def test_override_requires_a_reason_and_changes_the_value(signed_client):
     )
     assert without_reason.status_code == 422
 
-    applied = signed_client.post(
+    applied = moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -417,13 +417,13 @@ def test_override_requires_a_reason_and_changes_the_value(signed_client):
     assert after["overall_score"] != trust_before["overall_score"]
 
 
-def test_override_on_prof_status_moves_the_index_and_the_radar(signed_client):
+def test_override_on_prof_status_moves_the_index_and_the_radar(signed_client, moderator_client):
     setup_candidate(signed_client)
     snapshot = signed_client.get(PROF).json()["snapshots"][0]
     component = next(c for c in snapshot["components"] if c["status"] == "not_started")
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_PROF_STATUS,
@@ -447,13 +447,13 @@ def test_override_on_prof_status_moves_the_index_and_the_radar(signed_client):
     assert after["overall_score"] > snapshot["overall_score"]
 
 
-def test_override_is_visible_to_the_candidate_with_its_reason(signed_client):
+def test_override_is_visible_to_the_candidate_with_its_reason(signed_client, moderator_client):
     """Правка человека без объяснения на экране - тот же чёрный ящик."""
     setup_candidate(signed_client)
     component = next(c for c in signed_client.get(TRUST).json()["components"])
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -471,13 +471,13 @@ def test_override_is_visible_to_the_candidate_with_its_reason(signed_client):
     assert "Учтён внешний отзыв заказчика." in after["moderator_note_ru"]
 
 
-def test_override_only_accepts_known_targets_and_values(signed_client):
+def test_override_only_accepts_known_targets_and_values(signed_client, moderator_client):
     """FR4.4: правка адресная, и адрес проверяется."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
 
-    bad_type = signed_client.post(
+    bad_type = moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": "whole_profile",
@@ -488,7 +488,7 @@ def test_override_only_accepts_known_targets_and_values(signed_client):
     )
     assert bad_type.status_code == 400
 
-    bad_value = signed_client.post(
+    bad_value = moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -507,14 +507,14 @@ def test_there_is_no_blanket_profile_action(signed_client):
     assert source.count("ModeratorOverride(") == 1
 
 
-def test_every_moderator_action_leaves_a_record(signed_client):
+def test_every_moderator_action_leaves_a_record(signed_client, moderator_client):
     """FR4.5: действия модератора без следа в модуле не существует."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
 
-    signed_client.post(f"/api/moderation/cases/{case_id}/take")
-    signed_client.post(
+    moderator_client.post(f"/api/moderation/cases/{case_id}/take")
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Расчёт верен."}
     )
 
@@ -524,32 +524,32 @@ def test_every_moderator_action_leaves_a_record(signed_client):
     assert "moderator_note_added" in events
 
 
-def test_closed_case_cannot_be_acted_on_again(signed_client):
+def test_closed_case_cannot_be_acted_on_again(signed_client, moderator_client):
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
-    signed_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Верно."})
+    moderator_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Верно."})
 
-    again = signed_client.post(
+    again = moderator_client.post(
         f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Ещё раз."}
     )
     assert again.status_code == 409
 
 
-def test_queue_warns_that_it_is_not_production_safe(signed_client):
+def test_queue_warns_that_it_is_not_production_safe(signed_client, moderator_client):
     """§7: режим без ролей должен быть помечен в самом ответе, а не только в README."""
-    payload = queue(signed_client)
+    payload = queue(moderator_client)
     assert "без доступа и без ролей" in payload["not_production_safe_ru"]
 
 
-def test_queue_measures_load_and_dispute_concentration(signed_client):
+def test_queue_measures_load_and_dispute_concentration(signed_client, moderator_client):
     """H1: время разбора и перекос по видам выводов должны быть видны."""
     setup_candidate(signed_client)
     target = by_type(signed_client, TRUST_COMPONENT)[0]
     case_id = open_dispute(signed_client, target["id"]).json()["cases"][0]["id"]
-    signed_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Верно."})
+    moderator_client.post(f"/api/moderation/cases/{case_id}/uphold", json={"rationale_ru": "Верно."})
 
-    stats = queue(signed_client)["stats"]
+    stats = queue(moderator_client)["stats"]
     assert stats["resolved_count"] == 1
     assert stats["median_minutes_to_resolve"] is not None
     assert stats["disputes_by_subject_type"][TRUST_COMPONENT] == 1
@@ -602,14 +602,14 @@ def test_no_update_or_delete_path_exists_in_the_code():
     assert "DisputeHistoryEntry(" not in inspect.getsource(moderation_router)
 
 
-def test_override_and_history_never_diverge(signed_client):
+def test_override_and_history_never_diverge(signed_client, moderator_client):
     """§4.4: запись журнала рождается вместе с правкой и держит её значения."""
     setup_candidate(signed_client)
     component = signed_client.get(TRUST).json()["components"][0]
     previous = str(component["score"])
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -627,7 +627,7 @@ def test_override_and_history_never_diverge(signed_client):
     assert case["override"]["rationale_ru"] == entry["note_ru"]
 
 
-def test_previous_value_is_precise_enough_to_restore(signed_client):
+def test_previous_value_is_precise_enough_to_restore(signed_client, moderator_client):
     """FR5.3: не «балл вырос», а точное прежнее значение конкретного поля."""
     setup_candidate(signed_client)
     component = next(
@@ -635,7 +635,7 @@ def test_previous_value_is_precise_enough_to_restore(signed_client):
     )
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -650,14 +650,14 @@ def test_previous_value_is_precise_enough_to_restore(signed_client):
     assert override["previous_value"] == str(component["score"])
 
 
-def test_trust_version_grows_and_points_back_to_the_journal(signed_client):
+def test_trust_version_grows_and_points_back_to_the_journal(signed_client, moderator_client):
     """FR5.4: версия снимка и журнал - одно и то же, а не два разных счётчика."""
     setup_candidate(signed_client)
     before = signed_client.get(TRUST).json()
     component = before["components"][0]
     case_id = open_dispute(signed_client, component["explanation_id"]).json()["cases"][0]["id"]
 
-    signed_client.post(
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,
@@ -680,7 +680,7 @@ def test_trust_version_grows_and_points_back_to_the_journal(signed_client):
     assert trace["history_entry_id"] in history_ids
 
 
-def test_full_timeline_is_reconstructable(signed_client):
+def test_full_timeline_is_reconstructable(signed_client, moderator_client):
     """Приёмка US5: что заключила система, с чем спорили, кто смотрел, что
     изменилось, на что и почему."""
     setup_candidate(signed_client)
@@ -689,8 +689,8 @@ def test_full_timeline_is_reconstructable(signed_client):
         signed_client, component["explanation_id"], "источник независимый"
     ).json()["cases"][0]["id"]
 
-    signed_client.post(f"/api/moderation/cases/{case_id}/take")
-    signed_client.post(
+    moderator_client.post(f"/api/moderation/cases/{case_id}/take")
+    moderator_client.post(
         f"/api/moderation/cases/{case_id}/override",
         json={
             "target_type": overrides.TARGET_TRUST_COMPONENT,

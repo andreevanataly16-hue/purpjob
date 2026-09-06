@@ -39,6 +39,7 @@ from app.models import (
     RecruiterFeedback,
     User,
 )
+from app.access import require_moderator, require_recruiter
 from app.routers.auth import current_user
 from app.schemas_calibration import (
     BatchIn,
@@ -49,7 +50,26 @@ from app.schemas_calibration import (
 )
 from app.xai import SUBJECT_TYPE_RU
 
-router = APIRouter(prefix="/api/calibration", tags=["calibration"])
+# Здесь две разные двери, и разграничивать их надо тоже по-разному.
+#
+# Отзыв о кандидате оставляет рекрутер: он видел человека на собеседовании.
+# Сводку по формулам и изменение калибруемых величин смотрит оператор - это
+# роль модератора, и рекрутеру там делать нечего: менять то, как система
+# считает всех, он не должен.
+#
+# Роутера два именно поэтому: страж на роутере целиком надёжнее, чем проверка
+# в каждом обработчике, которую однажды забудут добавить.
+feedback_router = APIRouter(
+    prefix="/api/calibration",
+    tags=["calibration"],
+    dependencies=[Depends(require_recruiter)],
+)
+
+router = APIRouter(
+    prefix="/api/calibration",
+    tags=["calibration"],
+    dependencies=[Depends(require_moderator)],
+)
 
 NOT_PRODUCTION_SAFE_RU = (
     "Экран оператора без доступа и без ролей: его может открыть любой вошедший. Так можно "
@@ -143,14 +163,16 @@ def _state(db: Session, user: User, candidate_id: str) -> FeedbackStateOut:
     )
 
 
-@router.get("/feedback/{candidate_id}", response_model=FeedbackStateOut)
+@feedback_router.get("/feedback/{candidate_id}", response_model=FeedbackStateOut)
 def read_feedback(
     candidate_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> FeedbackStateOut:
     return _state(db, user, candidate_id)
 
 
-@router.post("/feedback", response_model=FeedbackStateOut, status_code=status.HTTP_201_CREATED)
+@feedback_router.post(
+    "/feedback", response_model=FeedbackStateOut, status_code=status.HTTP_201_CREATED
+)
 def submit_feedback(
     data: FeedbackIn, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> FeedbackStateOut:

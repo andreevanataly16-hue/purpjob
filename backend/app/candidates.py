@@ -330,13 +330,36 @@ def live_candidate(db, user) -> SeedCandidate | None:
     )
 
 
-def pool_for(db, user) -> list[SeedCandidate]:
-    """Видимый пул вместе с живым профилем, если он открыт рынку."""
-    live = live_candidate(db, user)
-    found = visible_pool()
-    if live is not None and live.visibility_mode == VISIBLE:
-        found = [live, *found]
+def live_pool(db) -> list[SeedCandidate]:
+    """Все настоящие профили, открытые рынку их владельцами.
+
+    Раньше в пул попадал только профиль самого запрашивающего: рекрутер и
+    кандидат были одним человеком, и разницы не было видно. С появлением ролей
+    это перестало работать - рекрутер не должен видеть исключительно себя.
+
+    Приватная граница при этом не сдвинулась ни на шаг: сюда попадают только
+    профили с режимом «видимый», выставленным самим кандидатом. Скрытый
+    профиль не доходит до рекрутерской стороны структурно - его здесь просто
+    нет, а не «отфильтрован потом».
+    """
+    from sqlalchemy import select
+
+    from app.models import User, VisibilityState
+
+    found = []
+    for state in db.scalars(select(VisibilityState).where(VisibilityState.mode == VISIBLE)):
+        owner = db.get(User, state.user_id)
+        if owner is None:
+            continue
+        candidate = live_candidate(db, owner)
+        if candidate is not None and candidate.visibility_mode == VISIBLE:
+            found.append(candidate)
     return found
+
+
+def pool_for(db, user) -> list[SeedCandidate]:
+    """Видимый пул: рукописные записи плюс настоящие открытые профили."""
+    return [*live_pool(db), *visible_pool()]
 
 
 def find_visible(db, user, candidate_id: str) -> SeedCandidate | None:

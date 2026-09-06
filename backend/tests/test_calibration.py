@@ -60,9 +60,9 @@ def verdict(explanation_id, value, subject_type="trust_component", subject_id="u
 # --- US1: один ответ, и он ничего не меняет -------------------------------
 
 
-def test_single_action_is_a_complete_submission(signed_client):
+def test_single_action_is_a_complete_submission(signed_client, recruiter_client):
     """FR1.2: подробности необязательны, иначе базовым действием не пользуются."""
-    response = send(signed_client, calibration.CONFIRMED_RELEVANT)
+    response = send(recruiter_client, calibration.CONFIRMED_RELEVANT)
 
     assert response.status_code == 201
     submitted = response.json()["submitted"]
@@ -70,32 +70,32 @@ def test_single_action_is_a_complete_submission(signed_client):
     assert submitted["component_count"] == 0
 
 
-def test_three_named_outcomes_and_nothing_else(signed_client):
+def test_three_named_outcomes_and_nothing_else(signed_client, recruiter_client):
     assert calibration.OUTCOMES == ("confirmed_relevant", "not_relevant", "partially_relevant")
     assert [calibration.OUTCOME_RU[value] for value in calibration.OUTCOMES] == [
         "Да",
         "Нет",
         "Частично",
     ]
-    assert send(signed_client, "maybe").status_code == 400
+    assert send(recruiter_client, "maybe").status_code == 400
 
 
-def test_prompt_matches_the_agreed_wording(signed_client):
-    state = signed_client.get(f"{FEEDBACK}/{CANDIDATE}").json()
+def test_prompt_matches_the_agreed_wording(signed_client, recruiter_client):
+    state = recruiter_client.get(f"{FEEDBACK}/{CANDIDATE}").json()
     assert state["prompt_ru"] == "Кандидат оказался релевантен после собеседования?"
     assert state["component_prompt_ru"] == (
         "Эта информация оказалась полезной или вводящей в заблуждение?"
     )
 
 
-def test_feedback_never_changes_the_candidates_scores(signed_client):
+def test_feedback_never_changes_the_candidates_scores(signed_client, recruiter_client):
     """FR1.3: мнение одного рекрутера не должно уметь уронить чей-то профиль."""
-    before = detail(signed_client)
+    before = detail(recruiter_client)
 
     for _ in range(3):
-        send(signed_client, calibration.NOT_RELEVANT)
+        send(recruiter_client, calibration.NOT_RELEVANT)
 
-    after = detail(signed_client)
+    after = detail(recruiter_client)
     assert after["trust_score"] == before["trust_score"]
     assert after["prof_index"] == before["prof_index"]
     assert after["match_score"] == before["match_score"]
@@ -111,9 +111,9 @@ def test_module_has_no_write_path_into_candidate_data():
     assert "ModeratorOverride(" not in source
 
 
-def test_scores_are_frozen_at_the_moment_of_feedback(signed_client):
+def test_scores_are_frozen_at_the_moment_of_feedback(signed_client, recruiter_client):
     """Сверять вывод с исходом нужно по тому, что система утверждала тогда."""
-    send(signed_client, calibration.CONFIRMED_RELEVANT)
+    send(recruiter_client, calibration.CONFIRMED_RELEVANT)
 
     with SessionLocal() as db:
         row = db.query(RecruiterFeedback).first()
@@ -121,52 +121,52 @@ def test_scores_are_frozen_at_the_moment_of_feedback(signed_client):
         assert row.prof_score_at_feedback > 0
 
 
-def test_feedback_for_an_unknown_candidate_is_refused(signed_client):
-    assert send(signed_client, calibration.CONFIRMED_RELEVANT, "cand_999").status_code == 404
+def test_feedback_for_an_unknown_candidate_is_refused(signed_client, recruiter_client):
+    assert send(recruiter_client, calibration.CONFIRMED_RELEVANT, "cand_999").status_code == 404
 
 
 # --- US2: отметки на конкретных выводах -----------------------------------
 
 
-def test_component_feedback_is_addressed_by_explanation_id(signed_client):
+def test_component_feedback_is_addressed_by_explanation_id(signed_client, recruiter_client):
     """FR2.1: тем же идентификатором, каким адресуется всё остальное."""
-    component = detail(signed_client)["trust_components"][0]
+    component = detail(recruiter_client)["trust_components"][0]
     assert component["explanation_id"]
 
     send(
-        signed_client,
+        recruiter_client,
         calibration.PARTIALLY_RELEVANT,
         components=[verdict(component["explanation_id"], calibration.MISLEADING)],
     )
 
-    state = signed_client.get(f"{FEEDBACK}/{CANDIDATE}").json()
+    state = recruiter_client.get(f"{FEEDBACK}/{CANDIDATE}").json()
     assert state["component_verdicts"][component["explanation_id"]] == calibration.MISLEADING
 
 
-def test_prof_competencies_are_addressable_too(signed_client):
+def test_prof_competencies_are_addressable_too(signed_client, recruiter_client):
     """FR2.2: отметка ставится там же, где рекрутер видел этот вывод."""
-    component = detail(signed_client)["prof_components"][0]
+    component = detail(recruiter_client)["prof_components"][0]
     assert component["explanation_id"]
 
 
-def test_several_marks_fit_one_submission(signed_client):
+def test_several_marks_fit_one_submission(signed_client, recruiter_client):
     """FR2.3: рекрутер не ограничен одной отметкой на кандидата."""
-    components = detail(signed_client)["trust_components"]
+    components = detail(recruiter_client)["trust_components"]
     marks = [
         verdict(item["explanation_id"], calibration.USEFUL, subject_id=item["component_id"])
         for item in components
     ]
 
-    send(signed_client, calibration.CONFIRMED_RELEVANT, components=marks)
+    send(recruiter_client, calibration.CONFIRMED_RELEVANT, components=marks)
 
     with SessionLocal() as db:
         assert db.query(ComponentFeedback).count() == len(components)
 
 
-def test_unknown_verdict_is_refused(signed_client):
-    component = detail(signed_client)["trust_components"][0]
+def test_unknown_verdict_is_refused(signed_client, recruiter_client):
+    component = detail(recruiter_client)["trust_components"][0]
     response = send(
-        signed_client,
+        recruiter_client,
         calibration.CONFIRMED_RELEVANT,
         components=[verdict(component["explanation_id"], "so-so")],
     )
@@ -176,16 +176,16 @@ def test_unknown_verdict_is_refused(signed_client):
 # --- US3: сводка и осознанное изменение -----------------------------------
 
 
-def test_one_comment_never_raises_a_systematic_flag(signed_client):
+def test_one_comment_never_raises_a_systematic_flag(signed_client, moderator_client, recruiter_client):
     """FR3.1: флаг требует и выборки, и доли — иначе это шум, а не закономерность."""
-    component = detail(signed_client)["trust_components"][0]
+    component = detail(recruiter_client)["trust_components"][0]
     send(
-        signed_client,
+        recruiter_client,
         calibration.NOT_RELEVANT,
         components=[verdict(component["explanation_id"], calibration.MISLEADING)],
     )
 
-    insight = signed_client.get(CAL).json()["insights"][0]
+    insight = moderator_client.get(CAL).json()["insights"][0]
     assert insight["misleading_rate"] == 1.0
     assert insight["sample_size"] == 1
     assert insight["flagged_for_review"] is False
@@ -221,32 +221,32 @@ def test_agreement_rule_is_a_swappable_function():
     assert calibration.outcomes_agree(calibration.PARTIALLY_RELEVANT, 90) is None
 
 
-def test_trust_accuracy_ignores_partial_outcomes(signed_client):
-    send(signed_client, calibration.PARTIALLY_RELEVANT)
+def test_trust_accuracy_ignores_partial_outcomes(signed_client, moderator_client, recruiter_client):
+    send(recruiter_client, calibration.PARTIALLY_RELEVANT)
 
-    accuracy = signed_client.get(CAL).json()["accuracy"]
+    accuracy = moderator_client.get(CAL).json()["accuracy"]
     assert accuracy["total_feedback_count"] == 1
     assert accuracy["comparable_count"] == 0
     assert accuracy["trust_accuracy_pct"] is None
 
 
-def test_trust_accuracy_is_computed_from_real_feedback(signed_client):
-    send(signed_client, calibration.CONFIRMED_RELEVANT)
+def test_trust_accuracy_is_computed_from_real_feedback(signed_client, moderator_client, recruiter_client):
+    send(recruiter_client, calibration.CONFIRMED_RELEVANT)
 
-    accuracy = signed_client.get(CAL).json()["accuracy"]
+    accuracy = moderator_client.get(CAL).json()["accuracy"]
     assert accuracy["comparable_count"] == 1
     assert accuracy["trust_accuracy_pct"] in (0, 100)
 
 
-def test_changing_a_constant_requires_a_reason(signed_client):
+def test_changing_a_constant_requires_a_reason(signed_client, moderator_client):
     """FR3.3: обязательность стоит в схеме, а не «в форме на экране»."""
-    without = signed_client.post(
+    without = moderator_client.post(
         f"{CAL}/changes",
         json={"constant_ref": "module8.decay_countdown_days", "new_value": "14", "rationale_ru": ""},
     )
     assert without.status_code == 422
 
-    with_reason = signed_client.post(
+    with_reason = moderator_client.post(
         f"{CAL}/changes",
         json={
             "constant_ref": "module8.decay_countdown_days",
@@ -262,9 +262,9 @@ def test_changing_a_constant_requires_a_reason(signed_client):
     assert change["based_on_feedback_count"] >= 0
 
 
-def test_only_listed_constants_can_be_changed(signed_client):
+def test_only_listed_constants_can_be_changed(signed_client, moderator_client):
     """Список закрытый: «поменять что угодно по имени» — способ обойти запись."""
-    refused = signed_client.post(
+    refused = moderator_client.post(
         f"{CAL}/changes",
         json={
             "constant_ref": "module6.overall_score",
@@ -285,8 +285,8 @@ def test_no_automatic_recalibration_anywhere():
     assert "DECAY_COUNTDOWN_DAYS =" not in source
 
 
-def test_change_log_cannot_be_edited(signed_client):
-    signed_client.post(
+def test_change_log_cannot_be_edited(signed_client, moderator_client):
+    moderator_client.post(
         f"{CAL}/changes",
         json={
             "constant_ref": "module14.min_sample_size",
@@ -302,8 +302,8 @@ def test_change_log_cannot_be_edited(signed_client):
             db.commit()
 
 
-def test_change_log_cannot_be_deleted(signed_client):
-    signed_client.post(
+def test_change_log_cannot_be_deleted(signed_client, moderator_client):
+    moderator_client.post(
         f"{CAL}/changes",
         json={
             "constant_ref": "module14.min_sample_size",
@@ -319,13 +319,13 @@ def test_change_log_cannot_be_deleted(signed_client):
             db.commit()
 
 
-def test_recorded_change_does_not_alter_past_snapshots(signed_client):
+def test_recorded_change_does_not_alter_past_snapshots(signed_client, moderator_client, recruiter_client):
     """FR3.4: изменение действует вперёд, прошлые снимки — исторический факт."""
-    send(signed_client, calibration.CONFIRMED_RELEVANT)
+    send(recruiter_client, calibration.CONFIRMED_RELEVANT)
     with SessionLocal() as db:
         before = db.query(RecruiterFeedback).first().trust_score_at_feedback
 
-    signed_client.post(
+    moderator_client.post(
         f"{CAL}/changes",
         json={
             "constant_ref": "module6.independence_weighting",
@@ -338,19 +338,19 @@ def test_recorded_change_does_not_alter_past_snapshots(signed_client):
         assert db.query(RecruiterFeedback).first().trust_score_at_feedback == before
 
 
-def test_operator_screen_is_flagged_as_not_production_safe(signed_client):
-    payload = signed_client.get(CAL).json()
+def test_operator_screen_is_flagged_as_not_production_safe(signed_client, moderator_client):
+    payload = moderator_client.get(CAL).json()
     assert "без доступа и без ролей" in payload["not_production_safe_ru"]
 
 
 # --- US4: выборочный разбор ------------------------------------------------
 
 
-def test_batch_produces_real_module_7_cases(signed_client):
+def test_batch_produces_real_module_7_cases(signed_client, moderator_client, recruiter_client):
     """FR4.2: этот модуль отбирает, а разбирает очередь модуля 7."""
-    send(signed_client, calibration.NOT_RELEVANT)
+    send(recruiter_client, calibration.NOT_RELEVANT)
 
-    created = signed_client.post(
+    created = moderator_client.post(
         f"{CAL}/batches", json={"selection_criteria": calibration.RANDOM, "size": 1}
     )
     assert created.status_code == 201
@@ -363,18 +363,18 @@ def test_batch_produces_real_module_7_cases(signed_client):
         assert case.origin == "sampled_audit"
         assert case.status == "queued"
 
-    queue = signed_client.get(QUEUE).json()
+    queue = moderator_client.get(QUEUE).json()
     assert any(item["origin"] == "sampled_audit" for item in queue["cases"])
 
 
-def test_divergence_selection_picks_only_contradictions(signed_client):
+def test_divergence_selection_picks_only_contradictions(signed_client, moderator_client, recruiter_client):
     """FR4.1: отбор по расхождению — то, ради чего он и нужен."""
     # Высокий Trust и «не подошёл» — это расхождение.
-    send(signed_client, calibration.NOT_RELEVANT, "cand_001")
+    send(recruiter_client, calibration.NOT_RELEVANT, "cand_001")
     # Высокий Trust и «подошёл» — согласие, в партию попадать не должно.
-    send(signed_client, calibration.CONFIRMED_RELEVANT, "cand_002")
+    send(recruiter_client, calibration.CONFIRMED_RELEVANT, "cand_002")
 
-    payload = signed_client.post(
+    payload = moderator_client.post(
         f"{CAL}/batches", json={"selection_criteria": calibration.HIGH_DIVERGENCE, "size": 5}
     ).json()
 
@@ -388,18 +388,18 @@ def test_divergence_selection_picks_only_contradictions(signed_client):
         )
 
 
-def test_batch_without_feedback_says_why(signed_client):
-    response = signed_client.post(
+def test_batch_without_feedback_says_why(signed_client, moderator_client):
+    response = moderator_client.post(
         f"{CAL}/batches", json={"selection_criteria": calibration.RANDOM, "size": 3}
     )
     assert response.status_code == 409
     assert "нет ни одного отзыва" in response.json()["detail"]
 
 
-def test_batch_summary_is_about_the_whole_batch(signed_client):
+def test_batch_summary_is_about_the_whole_batch(signed_client, moderator_client, recruiter_client):
     """FR4.3: систематическая ошибка видна поверх партии, а не в одном случае."""
-    send(signed_client, calibration.NOT_RELEVANT)
-    payload = signed_client.post(
+    send(recruiter_client, calibration.NOT_RELEVANT)
+    payload = moderator_client.post(
         f"{CAL}/batches", json={"selection_criteria": calibration.RANDOM, "size": 1}
     ).json()
 

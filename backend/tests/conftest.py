@@ -41,6 +41,48 @@ def credentials():
 
 @pytest.fixture
 def signed_client(client, credentials):
-    """Клиент с уже открытой сессией: модуль 2 весь под входом."""
+    """Клиент с уже открытой сессией: модуль 2 весь под входом.
+
+    Роль по умолчанию - кандидат. Рекрутерские и модераторские разделы ему
+    недоступны, и это проверяется отдельными тестами: регистрация не должна
+    выдавать прав над чужими данными.
+    """
     client.post("/api/auth/register", json=credentials)
     return client
+
+
+def _with_role(email, role):
+    """Отдельный вход с ролью: своя сессия, своя кука.
+
+    Клиент именно отдельный. Если бы роли жили на одном TestClient, каждая
+    следующая регистрация перетирала бы куку предыдущей, и тест «кандидат не
+    может в модерацию» проверял бы не то, что написано в его названии.
+
+    Роль выдаётся записью в базе, а не запросом от клиента: в продукте это
+    делает администратор скриптом `scripts/set_role.py`, и отдельного
+    эндпоинта «стать модератором» нет и быть не должно.
+    """
+    from app.access import role_of
+    from app.db import SessionLocal
+    from app.models import User
+
+    fresh = TestClient(app)
+    fresh.post("/api/auth/register", json={"email": email, "password": "verysecret123"})
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(email=email).one()
+        user.role = role
+        db.commit()
+        assert role_of(user) == role
+    return fresh
+
+
+@pytest.fixture
+def recruiter_client(client):
+    """Отдельный вход с ролью рекрутера."""
+    return _with_role("recruiter@example.com", "recruiter")
+
+
+@pytest.fixture
+def moderator_client(client):
+    """Отдельный вход с ролью модератора."""
+    return _with_role("moderator@example.com", "moderator")
