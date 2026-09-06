@@ -321,21 +321,16 @@ def test_open_text_still_reaches_the_document(signed_client):
 
 
 def test_font_state_is_reported_before_the_button_is_pressed(signed_client):
-    """Кириллице в PDF нужен встроенный шрифт - об этом говорят заранее."""
+    """Шрифт едет в сборке, поэтому экран заранее говорит «доступен»."""
     setup_candidate(signed_client)
     payload = signed_client.get(PREVIEW).json()
 
-    assert isinstance(payload["font_available"], bool)
+    assert payload["font_available"] is True
     assert "DejaVuSans.ttf" in payload["font_hint_ru"]
 
 
-def test_cyrillic_is_embedded_when_a_font_exists(signed_client):
-    """Если шрифт есть, кириллица должна быть настоящей, а не квадратами."""
-    if not register_font():
-        import pytest
-
-        pytest.skip("на этой машине нет шрифта с кириллицей")
-
+def test_cyrillic_is_embedded_in_the_document(signed_client):
+    """Кириллица должна быть настоящей, а не квадратами."""
     setup_candidate(signed_client)
     content = signed_client.post(PDF, json={"format": "pdf"}).content
 
@@ -369,11 +364,6 @@ def test_cyrillic_survives_to_the_finished_file(signed_client):
     Кириллица в PDF ломается тихо: файл собирается, открывается и показывает
     квадраты. Единственный честный способ убедиться - прочитать готовый файл.
     """
-    if not register_font():
-        import pytest
-
-        pytest.skip("на этой машине нет шрифта с кириллицей")
-
     setup_candidate(signed_client)
     text = _pdf_text(signed_client.post(PDF, json={"format": "pdf"}).content)
 
@@ -386,11 +376,6 @@ def test_cyrillic_survives_to_the_finished_file(signed_client):
 
 def test_finished_file_contains_no_nda_material(signed_client):
     """Утечка должна проверяться на самом документе, а не только на отборе."""
-    if not register_font():
-        import pytest
-
-        pytest.skip("на этой машине нет шрифта с кириллицей")
-
     setup_candidate(signed_client)
     text = _pdf_text(signed_client.post(PDF, json={"format": "pdf"}).content)
 
@@ -400,11 +385,6 @@ def test_finished_file_contains_no_nda_material(signed_client):
 
 
 def test_contacts_are_absent_from_the_file_when_excluded(signed_client):
-    if not register_font():
-        import pytest
-
-        pytest.skip("на этой машине нет шрифта с кириллицей")
-
     setup_candidate(signed_client)
     text = _pdf_text(
         signed_client.post(PDF, json={"format": "pdf", "include_contacts": False}).content
@@ -426,11 +406,6 @@ def test_build_pdf_does_not_depend_on_call_order():
     from app.resume import FONT_NAME, ResumeData, build_pdf, find_font
     from datetime import datetime, timezone
 
-    if find_font() is None:
-        import pytest
-
-        pytest.skip("на этой машине нет шрифта с кириллицей")
-
     # Убираем регистрацию, как будто процесс только что стартовал.
     pdfmetrics._fonts.pop(FONT_NAME, None)
     pdfmetrics._typefaces.pop(FONT_NAME, None)
@@ -448,3 +423,80 @@ def test_build_pdf_does_not_depend_on_call_order():
         generated_at=datetime.now(timezone.utc),
     )
     assert build_pdf(data).startswith(b"%PDF-")
+
+
+# --- шрифт едет вместе со сборкой ----------------------------------------
+#
+# Раньше экспорт искал шрифт в системе, и это был дефект: на машине с Arial
+# документ собирался, на машине без кириллического шрифта - падал, а на
+# третьей выглядел иначе. Ниже закреплено, что от окружения не зависит ничего.
+
+
+def test_the_font_is_shipped_with_the_application():
+    """Файл шрифта лежит в репозитории, а не ищется на машине."""
+    from app.resume import BUNDLED_FONT
+
+    assert BUNDLED_FONT.exists()
+    assert BUNDLED_FONT.suffix == ".ttf"
+    # Лицензия лежит рядом: свободный шрифт остаётся свободным, только пока
+    # с ним едут условия, на которых им можно пользоваться.
+    assert (BUNDLED_FONT.parent / "LICENSE-DejaVu.txt").exists()
+
+
+def test_no_system_font_is_ever_consulted():
+    """Списка системных путей больше нет - и вернуться он не должен."""
+    import inspect
+
+    from app import resume
+
+    source = inspect.getsource(resume)
+    assert "SYSTEM_FONT_CANDIDATES" not in source
+    assert "C:/Windows/Fonts" not in source
+    assert "/usr/share/fonts" not in source
+
+
+def test_the_bundled_font_covers_the_alphabet_the_product_writes_in():
+    """Проверка не «файл на месте», а «в нём есть нужные буквы».
+
+    Шрифт без кириллицы прошёл бы регистрацию и молча нарисовал квадраты.
+    """
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    from app.resume import BUNDLED_FONT
+
+    glyphs = TTFont("проверка", str(BUNDLED_FONT)).face.charToGlyph
+    alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+    assert all(ord(ch) in glyphs for ch in alphabet + alphabet.upper())
+    # Типографика самого продукта: длинное тире, кавычки-ёлочки, многоточие.
+    assert all(ord(ch) in glyphs for ch in "—«»…")
+
+
+def test_unmeasured_trust_reads_as_words_not_as_zero_in_the_file():
+    """Новое состояние Trust должно быть читаемым в готовом PDF.
+
+    Кириллица ломается тихо, а эта строка появилась позже остальных - её
+    видно только в свежем профиле, где мерить ещё нечего.
+    """
+    from datetime import datetime, timezone
+
+    from app.resume import ResumeData, build_pdf
+
+    text = _flat(
+        build_pdf(
+            ResumeData(
+                role_ru="Middle — Backend",
+                segment_ru="Профиль",
+                prof_score=0,
+                trust_score=0,
+                trust_measured=False,
+                trust_legend_ru="Легенда",
+                skills=[],
+                projects=[],
+                contact_email=None,
+                generated_at=datetime.now(timezone.utc),
+            )
+        )
+    )
+
+    assert "Trust Score: пока не рассчитан" in text
+    assert "Trust Score: 0 из 100" not in text

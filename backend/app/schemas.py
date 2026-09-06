@@ -23,6 +23,9 @@ class RegisterCredentials(Credentials):
     """При регистрации к паролю есть требования, при входе - уже нет."""
 
     password: str = Field(min_length=settings.password_min_length, max_length=1024)
+    # Код приглашения закрытого пилота. Необязателен на уровне схемы, потому
+    # что нужен он не всегда: решает режим регистрации, а не форма запроса.
+    invite_code: str | None = Field(default=None, max_length=200)
 
 
 class UserOut(BaseModel):

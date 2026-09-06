@@ -140,6 +140,9 @@
   }
   .error.show { display: block; }
   .hint { margin-top: 7px; font-size: 12.5px; color: var(--muted); }
+  /* Оговорка про почту стоит над кнопкой, а не в подвале: она меняет
+     решение человека, а решение принимается здесь. */
+  .pilot-note { margin: 14px 0 2px; line-height: 1.45; }
 
   .submit {
     width: 100%;
@@ -263,6 +266,21 @@
           <p class="hint" id="password-hint" hidden>Не короче 8 символов.</p>
         </div>
 
+        <div class="field" id="invite-field" hidden>
+          <label for="invite">Код приглашения</label>
+          <input type="text" id="invite" name="invite_code" autocomplete="off"
+                 placeholder="Код из письма с приглашением" aria-describedby="invite-error invite-hint">
+          <p class="error" id="invite-error"></p>
+          <p class="hint" id="invite-hint">
+            Пилот закрытый: профиль заводится по коду, который выдают участникам.
+          </p>
+        </div>
+
+        <p class="hint pilot-note" id="pilot-note" hidden>
+          Почта не подтверждается — указывайте свою. Восстановления пароля по почте
+          в пилоте нет: забытый пароль меняет администратор.
+        </p>
+
         <button type="submit" class="submit" id="submit">Войти</button>
       </form>
 
@@ -311,6 +329,9 @@
   const titleEl    = $('title')
   const subEl      = $('subtitle')
   const hintEl     = $('password-hint')
+  const inviteEl   = $('invite')
+  const inviteBox  = $('invite-field')
+  const pilotNote  = $('pilot-note')
   const logoutEl   = $('logout')
   const tabs       = [...document.querySelectorAll('[role="tab"]')]
 
@@ -370,6 +391,10 @@
     submitEl.textContent = c.submit
     pwEl.autocomplete = c.autocomplete
     hintEl.hidden = mode !== 'register'
+    // Код приглашения и оговорка про почту - только на регистрации: при входе
+    // ни то, ни другое ничего не значит.
+    inviteBox.hidden = mode !== 'register'
+    pilotNote.hidden = mode !== 'register'
     document.title = `PurpJob — ${mode === 'login' ? 'вход' : 'регистрация'}`
     tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.mode === mode)))
     clearErrors()
@@ -405,7 +430,7 @@
   }
 
   function clearErrors() {
-    ;[emailEl, pwEl].forEach(clearError)
+    ;[emailEl, pwEl, inviteEl].forEach(clearError)
     formError.classList.remove('show')
     formError.textContent = ''
   }
@@ -415,7 +440,7 @@
     formError.classList.add('show')
   }
 
-  ;[emailEl, pwEl].forEach(el => el.addEventListener('input', () => clearError(el)))
+  ;[emailEl, pwEl, inviteEl].forEach(el => el.addEventListener('input', () => clearError(el)))
 
   function validate() {
     clearErrors()
@@ -442,6 +467,11 @@
       firstBad ??= pwEl
     }
 
+    if (mode === 'register' && !inviteEl.value.trim()) {
+      showError(inviteEl, 'Введите код приглашения.')
+      firstBad ??= inviteEl
+    }
+
     if (firstBad) firstBad.focus()
     return !firstBad
   }
@@ -451,6 +481,7 @@
     submitEl.disabled = state
     emailEl.disabled = state
     pwEl.disabled = state
+    inviteEl.disabled = state
     submitEl.textContent = state ? copy[mode].pending : copy[mode].submit
   }
 
@@ -494,7 +525,13 @@
     try {
       result = await api(`/api/auth/${mode}`, {
         method: 'POST',
-        body: JSON.stringify({ email: emailEl.value.trim(), password: pwEl.value })
+        body: JSON.stringify(mode === 'register'
+          ? {
+              email: emailEl.value.trim(),
+              password: pwEl.value,
+              invite_code: inviteEl.value.trim()
+            }
+          : { email: emailEl.value.trim(), password: pwEl.value })
       })
     } catch {
       setBusy(false)
@@ -511,7 +548,16 @@
 
     const detail = typeof result.payload?.detail === 'string' ? result.payload.detail : null
 
-    if (result.status === 409) {
+    if (result.status === 403) {
+      showError(inviteEl, detail ?? 'Код приглашения не подходит.')
+      inviteEl.focus()
+    } else if (result.status === 429) {
+      // Один и тот же ответ на перебор пароля и перебор кода: подсказывать,
+      // что именно упёрлось в лимит, значит подсказывать, что перебирать.
+      showFormError(detail ?? 'Слишком много попыток. Подождите несколько минут.')
+    } else if (result.status === 503) {
+      showFormError(detail ?? 'Регистрация сейчас закрыта.')
+    } else if (result.status === 409) {
       showError(emailEl, detail ?? 'Такая почта уже занята.')
       emailEl.focus()
     } else if (result.status === 401) {

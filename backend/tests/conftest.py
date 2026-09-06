@@ -26,6 +26,12 @@ os.environ["UPLOAD_DIR"] = str(_uploads)
 os.environ["ENABLE_VACANCY_EXPERIMENT"] = "true"
 os.environ["ENABLE_RECRUITER_PILOT"] = "true"
 
+# Регистрация в тестах без кода приглашения: почти каждый тест начинается с
+# создания профиля, и код приглашения в каждом из них проверял бы фикстуру, а
+# не продукт. Что закрытый режим действительно закрывает регистрацию -
+# проверяется отдельно, переключением настройки (test_pilot_mode.py).
+os.environ["REGISTRATION_MODE"] = "open"
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db import Base, engine  # noqa: E402
@@ -63,6 +69,21 @@ def client():
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def _clean_login_limiter():
+    """Счётчик попыток входа живёт в памяти процесса, а не в базе.
+
+    База пересоздаётся на каждый тест, а счётчик - нет: без этой фикстуры
+    тесты, которые намеренно вводят неверный пароль, копили бы неудачи друг
+    другу и однажды получили бы 429 вместо 401 в тесте совсем про другое.
+    """
+    from app.ratelimit import login_limiter
+
+    login_limiter.reset()
+    yield
+    login_limiter.reset()
 
 
 @pytest.fixture

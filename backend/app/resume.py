@@ -89,39 +89,32 @@ class ResumeData:
 # --- шрифт ----------------------------------------------------------------
 #
 # Кириллица требует встроенного TTF: базовые шрифты PDF её не содержат.
-# Свободный шрифт в репозитории - самый предсказуемый вариант, но класть в
-# репозиторий системный проприетарный шрифт нельзя. Поэтому порядок поиска
-# такой: сначала свой, потом системные, и внятная ошибка, если ничего нет.
+# Шрифт лежит в репозитории и едет вместе с приложением - только так документ
+# получается одинаковым везде. Раньше здесь был ещё и поиск по системным
+# шрифтам, и он же был дефектом: на машине с Arial документ собирался, на
+# машине без кириллического шрифта - падал, а на третьей выглядел иначе. То
+# есть результат экспорта зависел от того, где запущен сервер.
+#
+# DejaVu Sans - свободный (Bitstream Vera + Arev), лицензия разрешает
+# распространение в составе продукта и лежит рядом файлом. Скачивать что-либо
+# на лету специально нельзя: это вернуло бы ту же зависимость от окружения,
+# только теперь ещё и от сети.
 
 FONT_NAME = "PurpJobSans"
 BUNDLED_FONT = Path(__file__).parent / "assets" / "fonts" / "DejaVuSans.ttf"
 
-SYSTEM_FONT_CANDIDATES = (
-    Path("C:/Windows/Fonts/arial.ttf"),
-    Path("C:/Windows/Fonts/segoeui.ttf"),
-    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-    Path("/usr/share/fonts/TTF/DejaVuSans.ttf"),
-    Path("/Library/Fonts/Arial.ttf"),
-    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
-)
-
 FONT_MISSING_RU = (
-    "Не нашли шрифт с кириллицей для PDF. Положите свободный DejaVuSans.ttf в "
-    "backend/app/assets/fonts/ — и экспорт заработает."
+    "В сборке нет файла шрифта backend/app/assets/fonts/DejaVuSans.ttf — "
+    "экспорт без него собрать нельзя. Похоже, сборка неполная."
 )
 
 
 class FontMissing(RuntimeError):
-    """Шрифта с кириллицей нет - собирать документ нечем."""
+    """Шрифта нет в сборке - собирать документ нечем."""
 
 
 def find_font() -> Path | None:
-    if BUNDLED_FONT.exists():
-        return BUNDLED_FONT
-    for candidate in SYSTEM_FONT_CANDIDATES:
-        if candidate.exists():
-            return candidate
-    return None
+    return BUNDLED_FONT if BUNDLED_FONT.exists() else None
 
 
 def register_font() -> bool:

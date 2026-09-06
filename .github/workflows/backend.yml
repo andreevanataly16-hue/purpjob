@@ -1,0 +1,91 @@
+# Автоматическая проверка бэкенда.
+#
+# Зачем. До этого файла единственным доказательством, что тесты проходят, была
+# строчка в сообщении коммита - то есть слово человека, который их запускал у
+# себя. Для пилота этого мало: проверка должна быть воспроизводимой и
+# повторяться сама на каждом изменении.
+#
+# Секретов здесь нет и быть не должно. Пароль базы ниже - от временного
+# контейнера, который живёт минуты и доступен только этому заданию; он
+# написан открытым текстом намеренно, чтобы его не приняли за настоящий.
+
+name: backend
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      # Та же СУБД, что в проде. Миграции проверяются на ней, а не на SQLite:
+      # диалекты расходятся ровно там, где это дороже всего заметить потом.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: purpjob
+          POSTGRES_PASSWORD: purpjob-ci-not-a-secret
+          POSTGRES_DB: purpjob_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U purpjob"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      # Ровно тот же способ установки, что и локально: requirements-dev
+      # подтягивает requirements сам, отдельного списка для CI нет - иначе он
+      # однажды разойдётся с тем, на чём работают люди.
+      - name: Установить зависимости
+        run: python -m pip install --upgrade pip -r backend/requirements-dev.txt
+
+      # Чистая база и миграции с нуля. Это проверка не "миграции существуют", а
+      # "новая установка поднимается": именно так стартует любой новый стенд.
+      - name: Применить миграции на чистой базе
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://purpjob:purpjob-ci-not-a-secret@localhost:5432/purpjob_ci
+        run: |
+          python -m alembic upgrade head
+          python -m alembic current
+
+      # Тесты поднимают своё окружение сами (временная SQLite, свои
+      # переключатели этапов). Переменные ENABLE_* здесь намеренно НЕ задаются:
+      # рекрутерские модули 10-15 выключены в поставке, и CI не должен быть
+      # местом, где они незаметно оказываются включёнными.
+      - name: Тесты бэкенда
+        working-directory: backend
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest -q
+
+      # Отдельно - что поставка по умолчанию действительно закрытая: этапы
+      # выключены, регистрация по приглашению. Проверяются значения по
+      # умолчанию, а не то, что задано окружением CI.
+      - name: Значения по умолчанию в поставке
+        working-directory: backend
+        env:
+          PYTHONUTF8: "1"
+        run: |
+          python - <<'PY'
+          from app.config import Settings
+
+          defaults = Settings.model_fields
+          assert defaults["enable_vacancy_experiment"].default is False
+          assert defaults["enable_recruiter_pilot"].default is False
+          assert defaults["registration_mode"].default == "invite"
+          assert defaults["keystroke_capture_enabled"].default is False
+          print("поставка по умолчанию закрыта")
+          PY
