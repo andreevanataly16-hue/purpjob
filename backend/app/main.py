@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db import Base, engine
+from app.db import engine
+from app.schema import SchemaOutdated, assert_schema_current
 from app.routers import (
     auth,
     export,
@@ -24,15 +25,25 @@ from app.routers import (
     xai,
 )
 
-# Импорт моделей нужен, чтобы они попали в метаданные Base до create_all.
+# Импорт моделей нужен, чтобы вся схема попала в метаданные Base: по ним
+# Alembic сверяет базу с кодом.
 from app import models  # noqa: F401
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # На этом этапе таблицы создаются напрямую. Когда схема начнёт меняться
-    # (профиль, Evidence, PROF), сюда придёт Alembic с миграциями.
-    Base.metadata.create_all(bind=engine)
+    """Проверяет, что схема базы соответствует коду - и не правит её молча.
+
+    Раньше здесь стоял `create_all()`. Он умеет только создавать недостающие
+    таблицы: новый столбец в уже существующую он не добавляет и об этом не
+    сообщает. Приложение поднималось, а падало потом - на первом запросе,
+    который этот столбец читал.
+
+    Автоматически применять миграции на старте тоже нельзя: изменение схемы не
+    должно случаться побочным эффектом запуска. Поэтому здесь только проверка,
+    а команду выполняет человек - её же выполняет и tools/run-api.cmd.
+    """
+    assert_schema_current(engine)
     yield
 
 

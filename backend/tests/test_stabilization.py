@@ -13,7 +13,10 @@
 """
 
 import inspect
+import os
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from app import growth, trust as trust_logic
 from app.db import SessionLocal
@@ -515,3 +518,72 @@ def test_audit_log_stores_no_content():
     source = inspect.getsource(access)
     assert "await request.body()" not in source
     assert "request.json()" not in source
+
+
+# --- 7. Миграции -----------------------------------------------------------
+
+
+def test_migrations_produce_exactly_the_schema_the_code_expects(tmp_path):
+    """Главная проверка миграций: они дают ту же схему, что и модели.
+
+    Расхождение здесь означало бы, что новая установка поднимается не такой,
+    как та, на которой всё писалось, - и разница вылезет позже, на первом
+    запросе к отсутствующему столбцу.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path as _Path
+
+    from sqlalchemy import create_engine, inspect
+
+    from app.db import Base
+
+    backend = _Path(__file__).resolve().parents[1]
+    database = tmp_path / "fresh.sqlite3"
+    url = f"sqlite+pysqlite:///{database.as_posix()}"
+
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=backend,
+        env={**os.environ, "DATABASE_URL": url, "PYTHONUTF8": "1"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    engine = create_engine(url)
+    actual = set(inspect(engine).get_table_names()) - {"alembic_version"}
+    assert actual == set(Base.metadata.tables)
+
+    columns = {column["name"] for column in inspect(engine).get_columns("users")}
+    assert "role" in columns
+
+
+def test_application_refuses_to_start_on_an_outdated_schema(tmp_path):
+    """Приложение не должно молча работать на несовпадающей схеме.
+
+    Раньше `create_all()` создавал недостающие таблицы и молчал про
+    недостающие столбцы: приложение поднималось, а падало потом - на первом
+    запросе, который этот столбец читал.
+    """
+    from sqlalchemy import create_engine
+
+    from app.schema import SchemaOutdated, assert_schema_current
+
+    empty = create_engine(f"sqlite+pysqlite:///{(tmp_path / 'empty.sqlite3').as_posix()}")
+    with pytest.raises(SchemaOutdated) as failure:
+        assert_schema_current(empty)
+
+    # Сообщение обязано содержать команду, а не только факт расхождения.
+    assert "alembic upgrade head" in str(failure.value)
+    assert "stamp" in str(failure.value)
+
+
+def test_create_all_is_no_longer_the_apps_way_of_building_the_schema():
+    from app import main
+
+    source = inspect.getsource(main)
+    # Именно вызова быть не должно; упоминание в объяснении, почему его нет, -
+    # это документация, а не поведение.
+    assert "metadata.create_all" not in source
+    assert "assert_schema_current(engine)" in source

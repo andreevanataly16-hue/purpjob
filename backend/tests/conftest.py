@@ -24,10 +24,34 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
+import contextlib  # noqa: E402
+
+
+@contextlib.asynccontextmanager
+async def _no_schema_check(_app):
+    """Пустой запуск приложения для тестов.
+
+    Приложение при старте требует применённых миграций - иначе оно поднялось
+    бы на схеме, не соответствующей коду. В тестах схема строится из моделей,
+    поэтому проверка здесь только мешала бы: она проверяла бы фикстуру, а не
+    продукт. Сами миграции проверяются отдельным тестом - тем, что дают ровно
+    такую же схему.
+    """
+    yield
+
+
+app.router.lifespan_context = _no_schema_check
+
 
 @pytest.fixture
 def client():
-    """Чистая база на каждый тест — тесты не должны зависеть друг от друга."""
+    """Чистая база на каждый тест — тесты не должны зависеть друг от друга.
+
+    Схема здесь строится из моделей, а не прогоном миграций: база создаётся
+    заново на каждый тест, и миграции в этом месте проверяли бы скорость
+    Alembic, а не логику продукта. Сами миграции проверяются отдельно - тем,
+    что дают ровно ту же схему (см. test_stabilization.py).
+    """
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
