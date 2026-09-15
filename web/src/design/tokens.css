@@ -1,0 +1,183 @@
+/* Токены PurpJob: единственное место, где живут сырые значения.
+
+   Три слоя, и порядок между ними односторонний:
+
+     1. Палитра (--ramp-*)   — сырые цвета. В коде модулей не используются
+                               никогда: у них нет смысла, только оттенок.
+     2. Смысл (--color-*)    — роль цвета на экране: фон, граница, опасность.
+                               Именно их берут компоненты и модули.
+     3. Каналы (--*-rgb)     — те же цвета, разложенные на компоненты, чтобы
+                               подложку любой прозрачности можно было собрать
+                               из токена, а не вписывать rgba() руками.
+
+   Смысл этого разделения простой: сменить фирменный фиолетовый на другой цвет
+   можно правкой одной строки в палитре, и он изменится везде — включая полсотни
+   полупрозрачных подложек, которые раньше были вписаны числами. */
+
+:root {
+  /* ────────────── 1. Палитра ────────────── */
+
+  /* Фиолетовый — фирменный цвет: действие, выбор, фокус. */
+  --ramp-violet-300: #c9aaff;
+  --ramp-violet-500: #a06bff;
+  --ramp-violet-600: #8952e8;
+
+  /* Ночь — поверхности и границы тёмной темы, от самой глубокой к светлой. */
+  --ramp-night-950: #08060e;
+  --ramp-night-900: #14101c;
+  --ramp-night-850: #171226;
+  --ramp-night-800: #1e1830;
+  --ramp-night-700: #322a4a;
+  --ramp-night-600: #453a63;
+  --ramp-night-glow: #2b1f4d;  /* только для фонового свечения над экраном входа */
+
+  /* Серый — текст и вспомогательные подписи. */
+  --ramp-slate-050: #ece8f5;
+  --ramp-slate-400: #9b93ae;
+  --ramp-slate-500: #7a7a88;
+  --ramp-slate-600: #6b6480;
+
+  /* Статусные оттенки. Янтарный в продукте значит не «ошибка», а «неполно»:
+     белое пятно, ограниченный статус, закрытый по NDA проект. */
+  --ramp-amber-300: #ffd9a3;
+  --ramp-amber-400: #ffc47a;
+  --ramp-green-300: #78dca0;
+  --ramp-green-400: #6ee7a8;
+  --ramp-red-300:   #ff9c9c;
+  --ramp-red-400:   #ff7a8a;
+
+  /* Бумага — светлая поверхность предпросмотра PDF. Это единственное место
+     продукта со светлым фоном, и оно светлое намеренно: экспорт печатают. */
+  --ramp-paper-050: #fbfbfd;
+  --ramp-paper-200: #e4e4ea;
+  --ramp-paper-600: #6b6b78;
+  --ramp-paper-700: #4a4a55;
+  --ramp-paper-900: #1a1a20;
+
+  /* ────────────── 2. Смысл ────────────── */
+
+  --color-bg:             var(--ramp-night-900);
+  --color-bg-glow:        var(--ramp-night-glow);
+  --color-surface:        var(--ramp-night-800);  /* карточка, панель */
+  --color-surface-sunken: var(--ramp-night-850);  /* поле ввода, вкладки */
+  --color-border:         var(--ramp-night-700);
+  --color-border-strong:  var(--ramp-night-600);
+  --color-scrim:          rgb(var(--void-rgb) / .72);
+
+  --color-text:        var(--ramp-slate-050);
+  --color-text-muted:  var(--ramp-slate-400);
+  --color-text-faint:  var(--ramp-slate-500);
+  --color-placeholder: var(--ramp-slate-600);
+  --color-on-accent:   #fff;
+
+  --color-accent:       var(--ramp-violet-500);
+  --color-accent-hover: var(--ramp-violet-600);
+  --color-accent-soft:  var(--ramp-violet-300);
+
+  --color-ok:          var(--ramp-green-400);
+  --color-ok-soft:     var(--ramp-green-300);
+  --color-warn:        var(--ramp-amber-400);
+  --color-warn-soft:   var(--ramp-amber-300);
+  --color-danger:      var(--ramp-red-400);
+  --color-danger-soft: var(--ramp-red-300);
+
+  --color-paper-bg:     var(--ramp-paper-050);
+  --color-paper-line:   var(--ramp-paper-200);
+  --color-paper-text:   var(--ramp-paper-900);
+  --color-paper-muted:  var(--ramp-paper-600);
+  --color-paper-faint:  var(--ramp-paper-700);
+
+  /* ────────────── 3. Каналы для подложек ────────────── */
+  /* Пишется так: background: rgb(var(--accent-rgb) / .12) */
+
+  --accent-rgb:      160 107 255;
+  --accent-soft-rgb: 201 170 255;
+  --ok-rgb:          110 231 168;
+  --ok-soft-rgb:     120 220 160;
+  --warn-rgb:        255 196 122;
+  --danger-rgb:      255 122 138;
+  --danger-soft-rgb: 255 156 156;
+  --muted-rgb:       155 147 174;
+  --surface-sunken-rgb: 23 18 38;
+  --void-rgb:        8 6 14;
+
+  /* ────────────── Размеры ────────────── */
+
+  /* Шаг 4px. Новая разметка берёт значения отсюда; в модулях 2–15 остались
+     промежуточные величины (6, 9, 13, 18, 22) — они приводятся к шкале при
+     правке модуля, а не разом, чтобы не двигать вёрстку вслепую. */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+
+  --radius-sm:     8px;   /* мелкая кнопка, вкладка */
+  --radius-md:     10px;  /* поле ввода, основная кнопка */
+  --radius-lg:     12px;  /* панель внутри карточки */
+  --radius-xl:     16px;  /* карточка-контейнер экрана */
+  --radius-pill:   999px; /* метка, статус, полоса прогресса */
+  --radius-circle: 50%;
+
+  /* ────────────── Текст ────────────── */
+
+  --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --fs-3xs: 10.5px;  /* только служебные подписи в графике */
+  --fs-2xs: 11.5px;
+  --fs-xs:  12.5px;  /* самый частый размер: подписи, пояснения */
+  --fs-sm:  13.5px;
+  --fs-md:  15px;    /* основной текст */
+  --fs-lg:  18px;
+  --fs-xl:  22px;
+  --fs-2xl: 26px;    /* заголовок экрана */
+  --fs-3xl: 32px;
+  --fs-4xl: 46px;    /* одно большое число: PROF.индекс, Trust Score */
+
+  --lh-tight: 1.2;
+  --lh-snug:  1.45;
+  --lh-base:  1.6;
+
+  --fw-normal: 400;
+  --fw-medium: 600;
+  --fw-bold:   700;
+
+  --tracking-caps: .14em;  /* только для ЗАГЛАВНЫХ подписей */
+  --tracking-tight: -.01em;
+
+  /* ────────────── Тени, фокус, движение ────────────── */
+
+  --shadow-card:  0 24px 60px rgb(0 0 0 / .45);
+  --shadow-pop:   0 18px 44px rgb(0 0 0 / .5);
+  --shadow-paper: 0 10px 30px rgb(0 0 0 / .3);  /* лист предпросмотра PDF */
+  --glow-accent: 0 0 12px var(--color-accent);
+
+  --focus-ring: 0 0 0 3px rgb(var(--accent-rgb) / .35);
+
+  --dur-fast: .15s;
+  --dur-slow: .3s;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+
+  /* ────────────── Совместимость ────────────── */
+  /* Короткие имена, на которые уже опираются модули 2–15. Это не второй
+     источник истины: каждое из них — ссылка на смысловой токен выше. Новый код
+     их не использует, старый продолжает работать без правок. */
+
+  --bg:          var(--color-bg);
+  --card:        var(--color-surface);
+  --field:       var(--color-surface-sunken);
+  --line:        var(--color-border);
+  --line-strong: var(--color-border-strong);
+  --purple:      var(--color-accent);
+  --purple-dim:  var(--color-accent-hover);
+  --purple-soft: var(--color-accent-soft);
+  --text:        var(--color-text);
+  --muted:       var(--color-text-muted);
+  --danger:      var(--color-danger);
+  --ok:          var(--color-ok);
+}

@@ -23,15 +23,15 @@
   justify-content: center;
   padding: 40px 16px;
   overflow-y: auto;
-  background: rgba(8, 6, 14, .72);
+  background: rgb(var(--void-rgb) / .72);
 }
 .why-card {
   width: min(680px, 100%);
   padding: 22px 24px 24px;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: var(--bg, #14111c);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
 }
 .why-top {
   display: flex;
@@ -65,10 +65,10 @@
 .why-problems {
   margin-top: 10px;
   padding: 11px 14px;
-  border: 1px solid rgba(255, 122, 122, .4);
+  border: 1px solid rgb(var(--danger-rgb) / .4);
   border-radius: 10px;
   font-size: 12.5px;
-  color: #ff9c9c;
+  color: var(--color-danger-soft);
 }
 
 .why-h { margin: 20px 0 10px; font-size: 13px; color: var(--muted); font-weight: 600; }
@@ -81,7 +81,7 @@
   background: var(--field);
   font-size: 13px;
 }
-.why-ev.broken { border-color: rgba(255, 122, 122, .4); }
+.why-ev.broken { border-color: rgb(var(--danger-rgb) / .4); }
 .why-ev-title { font-weight: 600; }
 .why-ev a { display: block; margin-top: 4px; font-size: 12.5px; word-break: break-all; }
 .why-ev-detail { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
@@ -100,9 +100,9 @@
 .why-disputed {
   margin-top: 18px;
   padding: 12px 14px;
-  border: 1px solid rgba(160, 107, 255, .32);
+  border: 1px solid rgb(var(--accent-rgb) / .32);
   border-radius: 10px;
-  background: rgba(160, 107, 255, .08);
+  background: rgb(var(--accent-rgb) / .08);
   font-size: 13px;
 }
 
@@ -126,7 +126,7 @@
 .dispute-status {
   font-size: 12.5px;
   font-weight: 600;
-  color: #ffc47a;
+  color: var(--color-warn);
 }
 .dispute-status.resolved_upheld,
 .dispute-status.resolved_overridden { color: var(--ok); }
@@ -139,7 +139,7 @@
   padding: 11px 14px;
   border-left: 2px solid var(--ok);
   border-radius: 0 9px 9px 0;
-  background: rgba(120, 220, 160, .07);
+  background: rgb(var(--ok-soft-rgb) / .07);
   font-size: 12.5px;
 }
 
@@ -168,7 +168,7 @@
   padding: 9px 12px;
   border-left: 2px solid var(--purple);
   border-radius: 0 8px 8px 0;
-  background: rgba(160, 107, 255, .08);
+  background: rgb(var(--accent-rgb) / .08);
   font-size: 12.5px;
   color: var(--muted);
 }

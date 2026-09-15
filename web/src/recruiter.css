@@ -11,11 +11,11 @@
 .rec-warning {
   margin: 16px 0 14px;
   padding: 12px 15px;
-  border: 1px solid rgba(255, 122, 122, .45);
+  border: 1px solid rgb(var(--danger-rgb) / .45);
   border-radius: 10px;
-  background: rgba(255, 122, 122, .08);
+  background: rgb(var(--danger-rgb) / .08);
   font-size: 12.5px;
-  color: #ff9c9c;
+  color: var(--color-danger-soft);
 }
 
 .rec-filters {
@@ -50,7 +50,7 @@
   border-radius: 12px;
   background: var(--field);
 }
-.rec-card.open { border-color: rgba(160, 107, 255, .4); }
+.rec-card.open { border-color: rgb(var(--accent-rgb) / .4); }
 
 .rec-card-head { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
 .rec-avatar {
@@ -59,7 +59,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgba(160, 107, 255, .16);
+  background: rgb(var(--accent-rgb) / .16);
   color: var(--purple-soft);
   font-size: 13px;
   font-weight: 600;
@@ -97,8 +97,8 @@
   border: 1px solid var(--line);
   border-radius: 9px;
 }
-.rec-req.uncovered { border-color: rgba(255, 196, 122, .3); }
-.rec-req.covered { border-color: rgba(120, 220, 160, .25); }
+.rec-req.uncovered { border-color: rgb(var(--warn-rgb) / .3); }
+.rec-req.covered { border-color: rgb(var(--ok-soft-rgb) / .25); }
 .rec-req-label { font-size: 13px; font-weight: 600; margin-right: 8px; }
 .rec-req p { margin: 5px 0 0; font-size: 12.5px; color: var(--muted); }
 
@@ -146,7 +146,7 @@
 }
 .rec-table th { color: var(--muted); font-weight: 600; }
 .rec-table td:first-child { color: var(--muted); }
-.rec-gaps { color: #ffc47a; }
+.rec-gaps { color: var(--color-warn); }
 
 /* Поэтапное раскрытие (модуль 13). */
 .rec-avatar.anon { background: var(--line); color: var(--muted); }
@@ -154,9 +154,9 @@
 .rec-stage {
   padding: 12px 14px;
   margin-bottom: 14px;
-  border: 1px solid rgba(160, 107, 255, .3);
+  border: 1px solid rgb(var(--accent-rgb) / .3);
   border-radius: 10px;
-  background: rgba(160, 107, 255, .07);
+  background: rgb(var(--accent-rgb) / .07);
   font-size: 12.5px;
 }
 .rec-stage.revealed {

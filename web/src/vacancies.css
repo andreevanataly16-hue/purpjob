@@ -7,7 +7,7 @@
   border-radius: 12px;
   background: var(--field);
 }
-.vacancy.open { border-color: rgba(160, 107, 255, .4); }
+.vacancy.open { border-color: rgb(var(--accent-rgb) / .4); }
 
 .vac-head {
   display: flex;
@@ -37,7 +37,7 @@
   margin-top: 12px;
   font-size: 12.5px;
 }
-.vac-gap { color: #ffc47a; }
+.vac-gap { color: var(--color-warn); }
 .vac-ok { color: var(--ok); }
 
 .vac-sources { margin-top: 9px; font-size: 12px; color: var(--muted); }
@@ -74,8 +74,8 @@
   border: 1px solid var(--line);
   border-radius: 10px;
 }
-.req.uncovered { border-color: rgba(255, 196, 122, .3); }
-.req.covered { border-color: rgba(120, 220, 160, .25); }
+.req.uncovered { border-color: rgb(var(--warn-rgb) / .3); }
+.req.covered { border-color: rgb(var(--ok-soft-rgb) / .25); }
 
 .req-head {
   display: flex;

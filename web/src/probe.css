@@ -17,12 +17,12 @@
   padding: 18px;
   border: 1px solid var(--purple);
   border-radius: 14px;
-  background: rgba(160, 107, 255, .07);
+  background: rgb(var(--accent-rgb) / .07);
 }
 .question.follow-up {
   margin-top: 12px;
   border-style: dashed;
-  background: rgba(160, 107, 255, .05);
+  background: rgb(var(--accent-rgb) / .05);
 }
 
 /* «Почему этот вопрос» стоит над вопросом и не прячется. */
@@ -50,8 +50,8 @@
   margin-top: 14px;
 }
 .probe-actions .spacer { flex: 1; }
-.link-btn.nda { color: #ffc47a; }
-.link-btn.nda:hover { color: #ffd9a3; }
+.link-btn.nda { color: var(--color-warn); }
+.link-btn.nda:hover { color: var(--color-warn-soft); }
 
 /* Жалоба на вопрос */
 .feedback-form {

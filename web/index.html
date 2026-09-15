@@ -4,32 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PurpJob — вход</title>
+
+<!-- Дизайн-система: токены, база и примитивы. Подключается первой, чтобы всё
+     остальное на странице могло на неё опираться. Правила и живая витрина —
+     docs/PurpJob_Design_System.md и /design.html при запущенном dev-сервере. -->
+<link rel="stylesheet" href="./src/design/index.css">
+
 <style>
-  :root {
-    --bg: #14101c;
-    --card: #1e1830;
-    --field: #171226;
-    --line: #322a4a;
-    --line-strong: #453a63;
-    --purple: #a06bff;
-    --purple-dim: #8952e8;
-    --purple-soft: #c9aaff;
-    --text: #ece8f5;
-    --muted: #9b93ae;
-    --danger: #ff7a8a;
-    --ok: #6ee7a8;
-  }
-  * { box-sizing: border-box; }
+  /* Ниже — только стили этого экрана. Цвета, размеры и радиусы берутся
+     токенами: собственных значений здесь больше нет. */
   body {
-    margin: 0;
-    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 20px;
-    background: radial-gradient(1000px 600px at 50% -10%, #2b1f4d 0%, var(--bg) 60%);
-    color: var(--text);
-    font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif;
+    padding: var(--space-7) var(--space-5);
+    background: radial-gradient(1000px 600px at 50% -10%, var(--color-bg-glow) 0%, var(--color-bg) 60%);
+    font-size: 16px;
   }
   .card {
     width: 100%;
@@ -38,7 +28,7 @@
     border: 1px solid var(--line);
     border-radius: 18px;
     padding: 38px 36px 32px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+    box-shadow: var(--shadow-card);
   }
   .brand {
     display: inline-flex;
@@ -82,7 +72,7 @@
   .tabs button:hover { color: var(--text); }
   .tabs button[aria-selected="true"] {
     background: var(--purple);
-    color: #fff;
+    color: var(--color-on-accent);
     font-weight: 600;
   }
 
@@ -104,15 +94,15 @@
     font-size: 15px;
     transition: border-color .15s, box-shadow .15s;
   }
-  input::placeholder { color: #6b6480; }
+  input::placeholder { color: var(--color-placeholder); }
   input:focus {
     outline: none;
     border-color: var(--purple);
-    box-shadow: 0 0 0 3px rgba(160, 107, 255, .18);
+    box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .18);
   }
   input:disabled { opacity: .55; }
   input[aria-invalid="true"] { border-color: var(--danger); }
-  input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(255, 122, 138, .16); }
+  input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgb(var(--danger-rgb) / .16); }
 
   .pw-wrap { position: relative; }
   .pw-wrap input { padding-right: 82px; }
@@ -130,7 +120,7 @@
     font-size: 13px;
     cursor: pointer;
   }
-  .pw-toggle:hover { color: var(--purple-soft); background: rgba(160, 107, 255, .1); }
+  .pw-toggle:hover { color: var(--purple-soft); background: rgb(var(--accent-rgb) / .1); }
 
   .error {
     display: none;
@@ -151,7 +141,7 @@
     border: 0;
     border-radius: 10px;
     background: var(--purple);
-    color: #fff;
+    color: var(--color-on-accent);
     font: inherit;
     font-size: 15px;
     font-weight: 600;
@@ -166,9 +156,9 @@
     display: none;
     margin-top: 16px;
     padding: 11px 14px;
-    border: 1px solid rgba(255, 122, 138, .35);
+    border: 1px solid rgb(var(--danger-rgb) / .35);
     border-radius: 10px;
-    background: rgba(255, 122, 138, .08);
+    background: rgb(var(--danger-rgb) / .08);
     font-size: 13.5px;
     color: var(--danger);
   }
@@ -192,7 +182,7 @@
     place-items: center;
     border-radius: 50%;
     background: var(--purple);
-    color: #fff;
+    color: var(--color-on-accent);
     font-size: 17px;
     font-weight: 600;
     text-transform: uppercase;
@@ -218,7 +208,7 @@
     cursor: pointer;
     transition: border-color .15s, background .15s;
   }
-  .logout:hover:not(:disabled) { border-color: var(--purple); background: rgba(160, 107, 255, .08); }
+  .logout:hover:not(:disabled) { border-color: var(--purple); background: rgb(var(--accent-rgb) / .08); }
   .logout:disabled { opacity: .6; cursor: default; }
 
   .foot {

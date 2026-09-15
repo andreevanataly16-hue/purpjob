@@ -11,11 +11,11 @@
 .mod-warning {
   margin: 16px 0 14px;
   padding: 12px 15px;
-  border: 1px solid rgba(255, 122, 122, .45);
+  border: 1px solid rgb(var(--danger-rgb) / .45);
   border-radius: 10px;
-  background: rgba(255, 122, 122, .08);
+  background: rgb(var(--danger-rgb) / .08);
   font-size: 12.5px;
-  color: #ff9c9c;
+  color: var(--color-danger-soft);
 }
 
 .mod-stats {
@@ -41,7 +41,7 @@
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
-.mod-status { font-size: 12.5px; font-weight: 600; color: #ffc47a; }
+.mod-status { font-size: 12.5px; font-weight: 600; color: var(--color-warn); }
 .mod-who { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 
 .mod-subject { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
@@ -52,7 +52,7 @@
 .mod-h { margin: 16px 0 8px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .mod-evidence { margin: 0; padding-left: 18px; }
 .mod-ev { margin-bottom: 7px; font-size: 12.5px; }
-.mod-ev.broken { color: #ff9c9c; }
+.mod-ev.broken { color: var(--color-danger-soft); }
 .mod-ev.muted { color: var(--muted); }
 .mod-ev p { margin: 4px 0 0; color: var(--muted); }
 

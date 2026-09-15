@@ -11,9 +11,9 @@
 .plug-privacy {
   margin: 16px 0 14px;
   padding: 12px 15px;
-  border: 1px solid rgba(120, 220, 160, .3);
+  border: 1px solid rgb(var(--ok-soft-rgb) / .3);
   border-radius: 10px;
-  background: rgba(120, 220, 160, .06);
+  background: rgb(var(--ok-soft-rgb) / .06);
   font-size: 12.5px;
   color: var(--muted);
 }
@@ -41,11 +41,11 @@
   border-radius: 50%;
   background: var(--muted);
 }
-.traffic.verified { border-color: rgba(120, 220, 160, .45); }
+.traffic.verified { border-color: rgb(var(--ok-soft-rgb) / .45); }
 .traffic.verified .traffic-dot { background: var(--ok); }
-.traffic.preliminary { border-color: rgba(255, 196, 122, .45); }
-.traffic.preliminary .traffic-dot { background: #ffc47a; }
-.traffic.needs_verification .traffic-dot { background: #7a7a88; }
+.traffic.preliminary { border-color: rgb(var(--warn-rgb) / .45); }
+.traffic.preliminary .traffic-dot { background: var(--color-warn); }
+.traffic.needs_verification .traffic-dot { background: var(--color-text-faint); }
 .traffic-note { font-size: 12px; color: var(--muted); }
 .traffic p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .traffic-link { color: var(--purple-soft) !important; }
@@ -60,7 +60,7 @@
   margin-bottom: 6px;
 }
 .plug-metric.small { margin-top: 16px; }
-.plug-value { font-size: 32px; font-weight: 700; line-height: 1; color: #ffc47a; }
+.plug-value { font-size: 32px; font-weight: 700; line-height: 1; color: var(--color-warn); }
 .plug-metric.small .plug-value { font-size: 22px; color: var(--purple-soft); }
 .plug-of { font-size: 13px; color: var(--muted); }
 
@@ -71,7 +71,7 @@
 .plug-anomaly {
   margin: 0 0 7px;
   padding: 10px 13px;
-  border-left: 2px solid rgba(255, 196, 122, .5);
+  border-left: 2px solid rgb(var(--warn-rgb) / .5);
   border-radius: 0 9px 9px 0;
   font-size: 12.5px;
 }
